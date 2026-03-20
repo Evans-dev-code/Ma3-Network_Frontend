@@ -1,0 +1,428 @@
+<div class="dashboard-wrapper">
+
+  <!-- ══ PAYWALL ══════════════════════════════════════════════════════ -->
+  <div class="paywall-overlay" *ngIf="!isSubscriptionActive()">
+    <div class="paywall-card">
+      <div class="pro-badge">PRO</div>
+      <div class="shield-wrap">
+        <div class="shield-ring ring-1"></div>
+        <div class="shield-ring ring-2"></div>
+        <mat-icon class="shield-icon">shield</mat-icon>
+      </div>
+      <h2>Wealth Protector</h2>
+      <p class="paywall-sub">Stop revenue leaks. Predict breakdowns. Own your fleet.</p>
+      <ul class="feature-list">
+        <li><mat-icon>insights</mat-icon>       Net Profit vs Gross per Matatu</li>
+        <li><mat-icon>speed</mat-icon>           Smart Mileage Maintenance Alerts</li>
+        <li><mat-icon>gavel</mat-icon>           NTSA &amp; Insurance Expiry Tracking</li>
+        <li><mat-icon>donut_large</mat-icon>     Daily Target Progress Rings</li>
+        <li><mat-icon>picture_as_pdf</mat-icon>  One-Click Fleet PDF Reports</li>
+      </ul>
+      <div class="price-row">
+        <span class="currency">KSh</span>
+        <span class="amount">300</span>
+        <span class="period">/month</span>
+      </div>
+      <button class="mpesa-btn" (click)="unlockDashboard()" [disabled]="isLoading()">
+        <mat-icon>phone_android</mat-icon>
+        <span>{{ isLoading() ? 'Sending M-Pesa request...' : 'Unlock via M-Pesa' }}</span>
+        <span class="btn-loader" *ngIf="isLoading()"></span>
+      </button>
+      <p class="secure-note"><mat-icon>lock</mat-icon> Secured &amp; encrypted · Cancel anytime</p>
+    </div>
+  </div>
+
+  <!-- ══ DASHBOARD ════════════════════════════════════════════════════ -->
+  <div class="dashboard-content" [class.locked]="!isSubscriptionActive()">
+
+    <!-- TOP BAR -->
+    <header class="top-bar">
+      <div class="title-block">
+        <h1>Owner's Wallet</h1>
+        <p>Fleet financial intelligence · Real-time</p>
+      </div>
+      <div class="top-actions">
+        <div class="range-tabs">
+          <button [class.active]="selectedRange()==='week'"  (click)="onRangeChange('week')">Week</button>
+          <button [class.active]="selectedRange()==='month'" (click)="onRangeChange('month')">Month</button>
+        </div>
+        <button class="action-btn export-btn" (click)="exportToPdf()" [disabled]="isExporting() || !raw()">
+          <mat-icon>picture_as_pdf</mat-icon>
+          <span class="btn-label">{{ isExporting() ? 'Exporting…' : 'Export PDF' }}</span>
+        </button>
+        <button class="icon-btn" [matBadge]="totalAlerts()" [matBadgeHidden]="totalAlerts()===0"
+                matBadgeColor="warn" matTooltip="Active alerts">
+          <mat-icon>notifications_none</mat-icon>
+        </button>
+      </div>
+    </header>
+
+    <mat-progress-bar mode="indeterminate" *ngIf="isLoading()" class="loading-bar"></mat-progress-bar>
+
+    <div class="empty-banner" *ngIf="!isLoading() && !raw() && isSubscriptionActive()">
+      <mat-icon>directions_bus</mat-icon>
+      <h3>No data yet</h3>
+      <p>Fleet data will appear once your drivers log their first trip.</p>
+    </div>
+
+    <ng-container *ngIf="raw()">
+
+      <!-- ALERT STRIP -->
+      <div class="alert-strip" *ngIf="maintenanceAlerts().length > 0 || complianceAlerts().length > 0">
+        <div class="alert-scroll">
+          <div class="alert-chip mech pulse" *ngFor="let a of maintenanceAlerts()">
+            <mat-icon>build_circle</mat-icon>
+            <span><strong>{{ a.plateNumber }}</strong> — service at {{ a.serviceHealthPercent | number:'1.0-0' }}% ({{ a.kmSinceLastService | number }} km)</span>
+          </div>
+          <div class="alert-chip comp pulse" *ngFor="let c of complianceAlerts()">
+            <mat-icon>gavel</mat-icon>
+            <span>
+              <strong>{{ c.plateNumber }}</strong>
+              <ng-container *ngIf="getDaysUntil(c.ntsaExpiry) <= 30">&nbsp;· NTSA in {{ getDaysUntil(c.ntsaExpiry) }}d</ng-container>
+              <ng-container *ngIf="getDaysUntil(c.insuranceExpiry) <= 30">&nbsp;· Insurance in {{ getDaysUntil(c.insuranceExpiry) }}d</ng-container>
+              <ng-container *ngIf="getDaysUntil(c.tlbExpiry) <= 30">&nbsp;· TLB in {{ getDaysUntil(c.tlbExpiry) }}d</ng-container>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- KPI GRID -->
+      <section class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Gross Revenue</span>
+            <div class="kpi-icon green-icon"><mat-icon>trending_up</mat-icon></div>
+          </div>
+          <div class="kpi-value">KSh {{ totalGrossRevenue() | number:'1.0-0' }}</div>
+          <div class="kpi-sub">{{ selectedRange() === 'week' ? 'This week' : 'This month' }}</div>
+          <div class="kpi-hint">Avg KSh {{ avgRevenuePerTrip() | number:'1.0-0' }} per trip</div>
+          <div class="kpi-bar green-bar"></div>
+        </div>
+
+        <div class="kpi-card highlight-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Net Profit</span>
+            <div class="kpi-icon emerald-icon"><mat-icon>savings</mat-icon></div>
+          </div>
+          <div class="kpi-value">KSh {{ totalNetProfit() | number:'1.0-0' }}</div>
+          <div class="margin-pill"
+               [class.healthy]="profitMargin() >= 40"
+               [class.warn]="profitMargin() >= 20 && profitMargin() < 40"
+               [class.danger]="profitMargin() < 20">
+            {{ profitMargin() }}% · {{ profitHealthLabel().text }}
+          </div>
+          <div class="kpi-hint">KSh {{ avgProfitPerVehicle() | number:'1.0-0' }} per vehicle</div>
+          <div class="kpi-bar emerald-bar"></div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Total Expenses</span>
+            <div class="kpi-icon red-icon"><mat-icon>money_off</mat-icon></div>
+          </div>
+          <div class="kpi-value">KSh {{ totalExpenses() | number:'1.0-0' }}</div>
+          <div class="kpi-split">
+            <span class="split-item fuel">⛽ {{ totalFuelExpense() | number:'1.0-0' }}</span>
+            <span class="split-item maint">🔧 {{ totalMaintenanceCost() | number:'1.0-0' }}</span>
+          </div>
+          <div class="kpi-hint">{{ expenseRatio() }}% of gross revenue</div>
+          <div class="kpi-bar red-bar"></div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-top">
+            <span class="kpi-label">Today's Profit</span>
+            <div class="kpi-icon amber-icon"><mat-icon>today</mat-icon></div>
+          </div>
+          <div class="kpi-value">KSh {{ todayNetProfit() | number:'1.0-0' }}</div>
+          <div class="kpi-sub">{{ totalTrips() }} trips logged today</div>
+          <div class="fleet-util">
+            <div class="util-bar">
+              <div class="util-fill" [style.width.%]="fleetUtilization()"></div>
+            </div>
+            <span>{{ activeVehicles() }}/{{ totalVehicles() }} active ({{ fleetUtilization() }}%)</span>
+          </div>
+          <div class="kpi-bar amber-bar"></div>
+        </div>
+      </section>
+
+      <!-- INSIGHT ROW -->
+      <section class="insight-row" *ngIf="topVehicle() || worstVehicle()">
+
+        <div class="insight-card top" *ngIf="topVehicle() as tv">
+          <div class="insight-icon"><mat-icon>emoji_events</mat-icon></div>
+          <div class="insight-body">
+            <span class="insight-label">Top Performer Today</span>
+            <span class="insight-plate">{{ tv.plateNumber }}</span>
+            <span class="insight-value">KSh {{ tv.todayNetProfit | number:'1.0-0' }} net profit</span>
+          </div>
+        </div>
+
+        <div class="insight-card warn" *ngIf="worstVehicle() as wv">
+          <div class="insight-icon"><mat-icon>warning_amber</mat-icon></div>
+          <div class="insight-body">
+            <span class="insight-label">Needs Attention</span>
+            <span class="insight-plate">{{ wv.plateNumber }}</span>
+            <span class="insight-value">{{ wv.targetAchievementPercent | number:'1.0-0' }}% of daily target</span>
+          </div>
+        </div>
+
+        <div class="insight-card info">
+          <div class="insight-icon"><mat-icon>bar_chart</mat-icon></div>
+          <div class="insight-body">
+            <span class="insight-label">Fleet Utilization</span>
+            <span class="insight-plate">{{ fleetUtilization() }}% active</span>
+            <span class="insight-value">{{ activeVehicles() }} of {{ totalVehicles() }} vehicles running</span>
+          </div>
+        </div>
+
+        <div class="insight-card alert" *ngIf="totalAlerts() > 0">
+          <div class="insight-icon"><mat-icon>notification_important</mat-icon></div>
+          <div class="insight-body">
+            <span class="insight-label">Action Required</span>
+            <span class="insight-plate">{{ totalAlerts() }} alert{{ totalAlerts() > 1 ? 's' : '' }}</span>
+            <span class="insight-value">{{ maintenanceAlerts().length }} service · {{ complianceAlerts().length }} compliance</span>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- FLEET PERFORMANCE -->
+      <div class="section-header">
+        <h2>Fleet Performance</h2>
+        <span class="badge">{{ totalVehicles() }} vehicles</span>
+      </div>
+
+      <section class="vehicle-grid">
+        <div class="vehicle-card"
+             *ngFor="let v of vehiclePerformances(); trackBy: trackByVehicle"
+             [class.alert-red]="v.serviceDue"
+             [class.alert-amber]="v.complianceExpiringSoon && !v.serviceDue">
+
+          <div class="vc-header">
+            <div class="vc-plate-block">
+              <span class="plate">{{ v.plateNumber }}</span>
+              <span class="route-tag">{{ v.route }}</span>
+            </div>
+            <span class="status-chip" [ngClass]="v.status.toLowerCase()">{{ v.status }}</span>
+          </div>
+
+          <div class="ring-wrap">
+            <svg viewBox="0 0 110 110" class="ring-svg" aria-hidden="true">
+              <circle cx="55" cy="55" r="46" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="9"/>
+              <circle cx="55" cy="55" r="46" fill="none"
+                      [attr.stroke]="getRingColor(v.targetAchievementPercent)"
+                      stroke-width="9" stroke-linecap="round"
+                      [attr.stroke-dasharray]="RING_C"
+                      [attr.stroke-dashoffset]="getRingOffset(v.targetAchievementPercent)"
+                      transform="rotate(-90 55 55)"/>
+              <text x="55" y="46" text-anchor="middle" class="ring-pct">{{ v.targetAchievementPercent | number:'1.0-0' }}%</text>
+              <text x="55" y="62" text-anchor="middle" class="ring-label">of target</text>
+            </svg>
+          </div>
+
+          <div class="vc-stats">
+            <div class="stat-row">
+              <span class="stat-label">Today's Profit</span>
+              <span class="stat-val" style="color:#10b981">KSh {{ v.todayNetProfit | number:'1.0-0' }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Daily Target</span>
+              <span class="stat-val">KSh {{ v.dailyTarget | number:'1.0-0' }}</span>
+            </div>
+            <div class="stat-row">
+              <span class="stat-label">Service Health</span>
+              <span class="stat-val" [style.color]="getServiceColor(v.serviceHealthPercent)">
+                {{ v.serviceHealthPercent | number:'1.0-0' }}%
+              </span>
+            </div>
+          </div>
+
+          <div class="vc-flags">
+            <div class="flag red" *ngIf="v.serviceDue">
+              <mat-icon>build_circle</mat-icon>
+              Service due — {{ v.kmSinceLastService | number }} km
+            </div>
+            <div class="flag amber" *ngIf="v.complianceExpiringSoon">
+              <mat-icon>gavel</mat-icon>
+              Compliance expiring soon
+            </div>
+          </div>
+
+          <!-- Footer with Log Service button -->
+          <div class="vc-footer">
+            <button class="set-target-btn" (click)="updateTarget(v)">
+              <mat-icon>edit</mat-icon> Target
+            </button>
+            <button class="log-service-btn" [class.urgent]="v.serviceDue"
+                    (click)="openMaintModal(v)">
+              <mat-icon>build</mat-icon>
+              {{ v.serviceDue ? 'Service Due!' : 'Log Service' }}
+            </button>
+            <div class="km-chip" [class.warn]="v.serviceDue">
+              <mat-icon>speed</mat-icon>{{ v.kmSinceLastService | number }}km
+            </div>
+          </div>
+
+        </div>
+
+        <div class="no-vehicles" *ngIf="vehiclePerformances().length === 0 && !isLoading()">
+          <mat-icon>directions_bus</mat-icon>
+          <p>No vehicles registered. Contact your SACCO manager.</p>
+        </div>
+      </section>
+
+      <!-- CHARTS -->
+      <div class="section-header"><h2>Financial Analytics</h2></div>
+
+      <div class="chart-card trend-card mb-16">
+        <div class="chart-header-row">
+          <div>
+            <h3>Weekly Cash Flow</h3>
+            <p>Gross Revenue vs Net Profit — spot your best and worst days</p>
+          </div>
+          <div class="chart-kpi-inline">
+            <div class="ck"><span class="ck-dot green"></span><span>KSh {{ totalGrossRevenue() | number:'1.0-0' }}</span></div>
+            <div class="ck"><span class="ck-dot blue"></span><span>KSh {{ totalNetProfit() | number:'1.0-0' }}</span></div>
+          </div>
+        </div>
+        <canvas #trendCanvas height="300" style="width:100%;display:block"></canvas>
+      </div>
+
+      <div class="charts-two-col mb-16">
+        <div class="chart-card">
+          <div class="chart-header-row">
+            <div>
+              <h3>Expense Split</h3>
+              <p>Where your money is going</p>
+            </div>
+            <span class="expense-total-badge">KSh {{ totalExpenses() | number:'1.0-0' }}</span>
+          </div>
+          <canvas #expenseCanvas height="220" style="width:100%;display:block"></canvas>
+          <div class="donut-legend">
+            <div class="dl"><span class="dot" style="background:#3b82f6"></span>Fuel <strong>KSh {{ totalFuelExpense() | number:'1.0-0' }}</strong></div>
+            <div class="dl"><span class="dot" style="background:#f59e0b"></span>Operational <strong>KSh {{ totalOtherExpenses() | number:'1.0-0' }}</strong></div>
+            <div class="dl"><span class="dot" style="background:#8b5cf6"></span>Maintenance <strong>KSh {{ totalMaintenanceCost() | number:'1.0-0' }}</strong></div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <div class="chart-header-row">
+            <div>
+              <h3>Maintenance Breakdown</h3>
+              <p>Cost by repair type · Log service on each vehicle card</p>
+            </div>
+            <span class="expense-total-badge">KSh {{ totalMaintenanceCost() | number:'1.0-0' }}</span>
+          </div>
+          <div class="maint-empty-hint" *ngIf="totalMaintenanceCost() === 0">
+            <mat-icon>build_circle</mat-icon>
+            <span>No maintenance records yet. Use <strong>Log Service</strong> on a vehicle card to add records.</span>
+          </div>
+          <canvas #maintCanvas height="220" style="width:100%;display:block"
+                  [style.display]="totalMaintenanceCost() > 0 ? 'block' : 'none'"></canvas>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header-row">
+          <div>
+            <h3>Route Performance</h3>
+            <p>Net profit ranked by route — focus on your most profitable corridors</p>
+          </div>
+        </div>
+        <canvas #routeCanvas height="260" style="width:100%;display:block"></canvas>
+      </div>
+
+    </ng-container>
+  </div>
+
+  <!-- ══ MAINTENANCE MODAL ══════════════════════════════════════════════ -->
+  <div class="maint-overlay" *ngIf="maintModalOpen()" (click)="closeMaintModal()">
+    <div class="maint-modal" (click)="$event.stopPropagation()">
+
+      <div class="maint-modal-header">
+        <div>
+          <h3>Log Maintenance Record</h3>
+          <p *ngIf="maintVehicle()">
+            <strong>{{ maintVehicle()!.plateNumber }}</strong> · {{ maintVehicle()!.route }}
+          </p>
+        </div>
+        <button class="maint-close-btn" (click)="closeMaintModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <!-- Service health bar -->
+      <div class="maint-health-bar" *ngIf="maintVehicle() as mv">
+        <div class="maint-health-row">
+          <span class="maint-health-label">Current Service Health</span>
+          <span class="maint-health-value"
+                [style.color]="getServiceColor(mv.serviceHealthPercent)">
+            {{ mv.serviceHealthPercent | number:'1.0-0' }}%
+          </span>
+        </div>
+        <div class="maint-health-track">
+          <div class="maint-health-fill"
+               [style.width.%]="mv.serviceHealthPercent"
+               [style.background]="getServiceColor(mv.serviceHealthPercent)">
+          </div>
+        </div>
+        <div class="maint-health-sub">
+          {{ mv.kmSinceLastService | number }} km driven since last service
+          <span *ngIf="mv.serviceDue" class="overdue-badge">OVERDUE</span>
+        </div>
+      </div>
+
+      <form class="maint-form" (submit)="submitMaintenance($event)">
+
+        <div class="maint-row">
+          <div class="maint-field">
+            <label>Service Type <span class="req">*</span></label>
+            <select name="maintenanceType" required class="maint-select">
+              <option value="" disabled selected>Select type</option>
+              <option *ngFor="let t of maintTypes" [value]="t.value">{{ t.label }}</option>
+            </select>
+          </div>
+          <div class="maint-field">
+            <label>Cost (KSh) <span class="req">*</span></label>
+            <input name="cost" type="number" min="1" required
+                   placeholder="e.g. 4500" class="maint-input">
+          </div>
+        </div>
+
+        <div class="maint-row">
+          <div class="maint-field">
+            <label>Mileage at Service (km) <span class="req">*</span></label>
+            <input name="mileage" type="number" min="1" required
+                   placeholder="e.g. 45000" class="maint-input">
+          </div>
+          <div class="maint-field">
+            <label>Performed By</label>
+            <input name="performedBy" type="text"
+                   placeholder="e.g. Mwangi Garage" class="maint-input">
+          </div>
+        </div>
+
+        <div class="maint-field full">
+          <label>Notes / Description</label>
+          <textarea name="description" rows="2"
+                    placeholder="e.g. Full synthetic oil, filter replaced"
+                    class="maint-input"></textarea>
+        </div>
+
+        <div class="maint-actions">
+          <button type="button" class="maint-cancel-btn" (click)="closeMaintModal()">
+            Cancel
+          </button>
+          <button type="submit" class="maint-submit-btn" [disabled]="maintLoading()">
+            <span class="maint-loader" *ngIf="maintLoading()"></span>
+            <mat-icon *ngIf="!maintLoading()">save</mat-icon>
+            {{ maintLoading() ? 'Saving...' : 'Save Maintenance Record' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+</div>

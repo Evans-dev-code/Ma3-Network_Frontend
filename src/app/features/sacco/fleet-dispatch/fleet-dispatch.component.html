@@ -1,0 +1,241 @@
+<div class="dispatch-wrapper">
+
+  <!-- HEADER -->
+  <div class="dispatch-header">
+    <div>
+      <h1>Fleet Dispatch</h1>
+      <p>Monitor, assign crew and manage your active fleet in real-time</p>
+    </div>
+    <div class="header-pills">
+      <div class="h-pill active">
+        <span class="pill-dot"></span>
+        {{ activeCount() }} Active
+      </div>
+      <div class="h-pill inactive" *ngIf="inactiveCount() > 0">
+        <span class="pill-dot"></span>
+        {{ inactiveCount() }} Inactive
+      </div>
+      <div class="h-pill warn" *ngIf="noCrewCount() > 0">
+        <mat-icon>warning_amber</mat-icon>
+        {{ noCrewCount() }} Needs Crew
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI ROW -->
+  <div class="kpi-row">
+    <div class="kpi-tile">
+      <div class="kpi-icon blue"><mat-icon>directions_bus</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Total Fleet</span>
+        <span class="kpi-val">{{ vehicles().length }}</span>
+      </div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-icon green"><mat-icon>check_circle</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Active</span>
+        <span class="kpi-val green-val">{{ activeCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-icon red"><mat-icon>cancel</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Inactive</span>
+        <span class="kpi-val red-val">{{ inactiveCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-icon amber"><mat-icon>person_off</mat-icon></div>
+      <div class="kpi-body">
+        <span class="kpi-label">Needs Crew</span>
+        <span class="kpi-val amber-val">{{ noCrewCount() }}</span>
+      </div>
+    </div>
+    <div class="kpi-tile util-tile">
+      <div class="util-ring">
+        <svg viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="20" fill="none"
+                  stroke="rgba(0,0,0,0.06)" stroke-width="5"/>
+          <circle cx="26" cy="26" r="20" fill="none"
+                  [attr.stroke]="utilizationRate() >= 70 ? '#10b981' :
+                                 utilizationRate() >= 40 ? '#f59e0b' : '#f43f5e'"
+                  stroke-width="5" stroke-linecap="round"
+                  stroke-dasharray="125.7"
+                  [attr.stroke-dashoffset]="125.7 - (125.7 * utilizationRate() / 100)"
+                  transform="rotate(-90 26 26)"/>
+        </svg>
+        <span class="util-pct">{{ utilizationRate() }}%</span>
+      </div>
+      <div class="kpi-body">
+        <span class="kpi-label">Utilization</span>
+        <span class="kpi-sub">Fleet on road</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="dispatch-body">
+
+    <!-- SIDEBAR -->
+    <div class="dispatch-sidebar">
+
+      <div class="search-box">
+        <mat-icon>search</mat-icon>
+        <input type="text" placeholder="Search plate, route, driver..."
+               (input)="onSearch($event)">
+      </div>
+
+      <div class="list-loading" *ngIf="isLoading()">
+        <div class="mini-spin"></div> Loading fleet...
+      </div>
+
+      <div class="vehicle-list" *ngIf="!isLoading()">
+
+        <div class="vehicle-item"
+             *ngFor="let v of filteredVehicles()"
+             [class.selected]="selectedId() === v.id"
+             [class.no-driver]="v.driverName === 'No Driver'"
+             [class.no-conductor]="!v.hasConductor && v.driverName !== 'No Driver'"
+             (click)="selectVehicle(v)">
+
+          <div class="vi-status-dot"
+               [style.background]="v.status === 'ACTIVE' ? '#10b981' : '#f43f5e'">
+          </div>
+
+          <div class="vi-main">
+            <div class="vi-top">
+              <span class="vi-plate">{{ v.plateNumber }}</span>
+              <span class="vi-speed" *ngIf="v.status === 'ACTIVE'" style="color:#10b981">
+                {{ v.speed }} km/h
+              </span>
+              <span class="vi-speed parked" *ngIf="v.status !== 'ACTIVE'">Parked</span>
+            </div>
+            <div class="vi-route">{{ v.route }}</div>
+            <div class="vi-crew">
+              <!-- Driver row -->
+              <div class="crew-tag" [class.missing]="v.driverName === 'No Driver'">
+                <mat-icon>directions_car</mat-icon>
+                {{ v.driverName }}
+              </div>
+              <!-- Conductor row — shows "No Conductor" in amber when missing -->
+              <div class="crew-tag" [class.missing]="!v.hasConductor">
+                <mat-icon>person</mat-icon>
+                {{ v.conductorName }}
+                <span class="no-cond-badge" *ngIf="!v.hasConductor">Driver-only</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="vi-actions">
+            <button class="vi-action-btn assign"
+                    (click)="$event.stopPropagation(); reassignCrew(v)"
+                    title="Reassign Crew">
+              <mat-icon>group_add</mat-icon>
+            </button>
+            <button class="vi-action-btn retire"
+                    (click)="$event.stopPropagation(); retireVehicle(v)"
+                    title="Retire Vehicle">
+              <mat-icon>directions_car_off</mat-icon>
+            </button>
+          </div>
+
+        </div>
+
+        <div class="list-empty" *ngIf="filteredVehicles().length === 0">
+          <mat-icon>directions_bus</mat-icon>
+          <p>No vehicles found</p>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MAP + DETAIL PANEL -->
+    <div class="dispatch-right">
+
+      <div class="map-area">
+        <div class="live-badge">
+          <div class="live-dot"></div> Live GPS · {{ activeCount() }} moving
+        </div>
+        <div class="map-container"
+             leaflet
+             [leafletOptions]="mapOptions"
+             [leafletLayers]="mapLayers()"
+             (leafletMapReady)="onMapReady($event)">
+        </div>
+      </div>
+
+      <!-- Selected vehicle detail -->
+      <div class="detail-panel" *ngIf="selectedVehicle() as sv">
+        <div class="dp-header">
+          <div class="dp-plate-block">
+            <span class="dp-plate">{{ sv.plateNumber }}</span>
+            <span class="dp-route">{{ sv.route }}</span>
+          </div>
+          <span class="dp-status"
+                [class.dp-active]="sv.status === 'ACTIVE'"
+                [class.dp-inactive]="sv.status !== 'ACTIVE'">
+            {{ sv.status }}
+          </span>
+        </div>
+
+        <div class="dp-grid">
+          <div class="dp-item">
+            <mat-icon>speed</mat-icon>
+            <div>
+              <span class="dp-label">Speed</span>
+              <span class="dp-val">{{ sv.speed }} km/h</span>
+            </div>
+          </div>
+          <div class="dp-item">
+            <mat-icon>person</mat-icon>
+            <div>
+              <span class="dp-label">Driver</span>
+              <span class="dp-val"
+                    [class.dp-missing]="sv.driverName === 'No Driver'">
+                {{ sv.driverName }}
+              </span>
+            </div>
+          </div>
+          <div class="dp-item">
+            <mat-icon>supervisor_account</mat-icon>
+            <div>
+              <span class="dp-label">Conductor</span>
+              <span class="dp-val" [class.dp-missing]="!sv.hasConductor">
+                {{ sv.conductorName }}
+              </span>
+            </div>
+          </div>
+          <div class="dp-item">
+            <mat-icon>manage_accounts</mat-icon>
+            <div>
+              <span class="dp-label">Owner</span>
+              <span class="dp-val">{{ sv.ownerName }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conductor notice if missing -->
+        <div class="dp-conductor-notice" *ngIf="!sv.hasConductor">
+          <mat-icon>info</mat-icon>
+          <span>
+            This vehicle has no conductor.
+            Use <strong>Reassign Crew</strong> to assign one.
+          </span>
+        </div>
+
+        <div class="dp-actions">
+          <button class="dp-btn assign" (click)="reassignCrew(sv)">
+            <mat-icon>group_add</mat-icon>
+            Reassign Crew
+          </button>
+          <button class="dp-btn retire" (click)="retireVehicle(sv)">
+            <mat-icon>directions_car_off</mat-icon>
+            Retire
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>

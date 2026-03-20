@@ -1,0 +1,305 @@
+.tracker-wrapper {
+  --surf:   #0f172a;
+  --surf-2: #1e293b;
+  --border: rgba(255,255,255,0.06);
+  --text:   #f1f5f9;
+  --muted:  #94a3b8;
+  --faint:  #475569;
+  --green:  #10b981;
+  --red:    #f43f5e;
+  --blue:   #3b82f6;
+
+  background: #060d18;
+  min-height: 100%;
+  padding: 12px;
+  font-family: 'DM Sans','Segoe UI',sans-serif;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-icon { color: var(--muted); }
+}
+
+// ── Header ────────────────────────────────────────────────────────────
+.tracker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+
+  h1 {
+    font-size: 1.3rem;
+    font-weight: 800;
+    margin: 0;
+    letter-spacing: -.02em;
+    background: linear-gradient(135deg,#f1f5f9 40%,#475569);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+
+    @media(max-width:480px) { font-size: 1.1rem; }
+  }
+  p { color: var(--muted); font-size: .74rem; margin: 1px 0 0; }
+}
+
+.fleet-summary {
+  display: flex;
+  gap: 6px;
+
+  .fs-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: .7rem;
+    font-weight: 600;
+
+    .fs-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    &.moving { background: rgba(16,185,129,.1); color: var(--green); }
+    &.parked { background: rgba(244,63,94,.1);  color: var(--red);   }
+  }
+}
+
+// ── Body — KEY CHANGE: column-first on mobile, row on desktop ─────────
+.tracker-body {
+  display: flex;
+  flex-direction: column;   // mobile: map on top, list below
+  gap: 10px;
+  flex: 1;
+
+  @media(min-width:768px) {
+    flex-direction: row;    // desktop: side by side
+    // Use viewport height minus header/padding — keeps map visible
+    height: calc(100vh - 140px);
+  }
+}
+
+// ── Map — shown FIRST on mobile so it's the hero ─────────────────────
+.map-area {
+  // Mobile: fixed height so map is always fully visible without scrolling
+  height: 55vw;
+  min-height: 260px;
+  max-height: 380px;
+  order: 1; // map first on mobile
+
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+
+  @media(min-width:768px) {
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    order: 2; // map second on desktop (sidebar left, map right)
+  }
+
+  .live-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+    background: rgba(15,23,42,0.92);
+    border: 1px solid rgba(255,255,255,.1);
+    backdrop-filter: blur(8px);
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .72rem;
+    font-weight: 700;
+    color: var(--text);
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--red);
+      border-radius: 50%;
+      animation: livePulse 1.5s infinite;
+    }
+  }
+
+  .ws-note {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: rgba(15,23,42,0.88);
+    border: 1px solid rgba(59,130,246,.2);
+    backdrop-filter: blur(8px);
+    padding: 5px 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: .64rem;
+    color: var(--muted);
+    white-space: nowrap;
+    max-width: 90%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    mat-icon {
+      font-size: 12px;
+      width: 12px;
+      height: 12px;
+      color: var(--blue) !important;
+      flex-shrink: 0;
+    }
+
+    @media(max-width:480px) { display: none; } // hide on very small screens
+  }
+}
+
+// Leaflet map must fill the entire container
+.map-container {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+}
+
+// ── Sidebar — shown SECOND on mobile, scrollable vehicle list ─────────
+.sidebar {
+  order: 2; // list below map on mobile
+  background: var(--surf);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  // Mobile: compact fixed height so page doesn't scroll endlessly
+  max-height: 220px;
+
+  @media(min-width:480px) { max-height: 260px; }
+
+  @media(min-width:768px) {
+    order: 1; // sidebar left on desktop
+    width: 270px;
+    flex-shrink: 0;
+    max-height: none; // full height on desktop
+    height: 100%;
+  }
+
+  .sidebar-label {
+    padding: 10px 14px;
+    font-size: .6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .07em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .loading-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px;
+    font-size: .76rem;
+    color: var(--muted);
+
+    .mini-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(255,255,255,.1);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+  }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Vehicle List ──────────────────────────────────────────────────────
+.vehicle-list {
+  flex: 1;
+  overflow-y: auto;
+  // Mobile: horizontal scroll option so items don't wrap
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,.1) transparent;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 4px; }
+}
+
+.vehicle-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  cursor: pointer;
+  transition: background .15s;
+  border-bottom: 1px solid var(--border);
+
+  &:hover    { background: rgba(255,255,255,.03); }
+  &.selected { background: rgba(16,185,129,.07); border-left: 3px solid var(--green); padding-left: 10px; }
+  &:last-child { border-bottom: none; }
+
+  .vi-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .vi-body {
+    flex: 1;
+    min-width: 0;
+
+    .vi-plate { font-size: .85rem; font-weight: 800; color: var(--text); }
+    .vi-route {
+      font-size: .65rem;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .vi-right {
+    text-align: right;
+    flex-shrink: 0;
+
+    .vi-speed  { font-size: .75rem; font-weight: 700; }
+    .vi-status {
+      font-size: .58rem;
+      color: var(--faint);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      &.moving { color: var(--green); }
+    }
+  }
+}
+
+.no-vehicles {
+  text-align: center;
+  padding: 24px 16px;
+  color: var(--muted);
+
+  mat-icon {
+    font-size: 32px;
+    width: 32px;
+    height: 32px;
+    opacity: .15;
+    color: var(--muted) !important;
+  }
+  p { margin-top: 8px; font-size: .78rem; }
+}
+
+// ── Animations ────────────────────────────────────────────────────────
+@keyframes livePulse {
+  0%   { transform: scale(.95); box-shadow: 0 0 0 0 rgba(244,63,94,.7); }
+  70%  { transform: scale(1);   box-shadow: 0 0 0 5px rgba(244,63,94,0); }
+  100% { transform: scale(.95); box-shadow: 0 0 0 0 rgba(244,63,94,0); }
+}

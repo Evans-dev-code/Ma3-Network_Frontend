@@ -1,0 +1,281 @@
+<div class="admin-wrapper">
+
+  <!-- HEADER -->
+  <div class="admin-header">
+    <div class="header-left">
+      <div class="header-icon">
+        <mat-icon>admin_panel_settings</mat-icon>
+      </div>
+      <div>
+        <h1>Platform Intelligence</h1>
+        <p>Ma3 Network SaaS · Real-time platform analytics</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <button class="refresh-btn" (click)="load()" [disabled]="isLoading()">
+        <mat-icon [class.spinning]="isLoading()">refresh</mat-icon>
+        Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading bar -->
+  <div class="loading-bar" *ngIf="isLoading()">
+    <div class="loading-fill"></div>
+  </div>
+
+  <!-- ── REVENUE KPI ROW ──────────────────────────────────────────── -->
+  <div class="section-label">Revenue Overview</div>
+  <div class="kpi-grid revenue-grid">
+
+    <div class="kpi-card dark-card">
+      <div class="kc-top">
+        <span class="kc-label">Total Platform Revenue</span>
+        <div class="kc-icon dark-icon"><mat-icon>account_balance</mat-icon></div>
+      </div>
+      <div class="kc-val large">KSh {{ totalPlatformRevenue() | number }}</div>
+      <div class="kc-sub">Projected annual (MRR × 12)</div>
+      <div class="kc-bar" style="background:var(--green)"></div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kc-top">
+        <span class="kc-label">Monthly Recurring Revenue</span>
+        <div class="kc-icon green-icon"><mat-icon>payments</mat-icon></div>
+      </div>
+      <div class="kc-val">KSh {{ monthlyRecurringRevenue() | number }}</div>
+      <div class="kc-split">
+        <span class="split-tag blue">
+          <mat-icon>person</mat-icon>Owners KSh {{ ownerMrr() | number }}
+        </span>
+        <span class="split-tag purple">
+          <mat-icon>domain</mat-icon>SACCOs KSh {{ saccoMrr() | number }}
+        </span>
+      </div>
+      <div class="kc-bar" style="background:var(--blue)"></div>
+    </div>
+
+    <div class="kpi-card">
+      <div class="kc-top">
+        <span class="kc-label">Active Subscriptions</span>
+        <div class="kc-icon amber-icon"><mat-icon>verified</mat-icon></div>
+      </div>
+      <div class="kc-val">{{ activeSubscriptions() }}</div>
+      <div class="kc-sub">
+        {{ subscribedOwners() }} owners subscribed
+        · {{ subscriptionRate() }}% rate
+      </div>
+      <div class="subscription-bar">
+        <div class="sub-fill" [style.width.%]="subscriptionRate()"></div>
+      </div>
+      <div class="kc-bar" style="background:var(--amber)"></div>
+    </div>
+
+  </div>
+
+  <!-- ── PLATFORM KPI ROW ─────────────────────────────────────────── -->
+  <div class="section-label">Platform Scale</div>
+  <div class="kpi-grid scale-grid">
+
+    <div class="kpi-card small-card">
+      <div class="kc-top">
+        <span class="kc-label">Total SACCOs</span>
+        <div class="kc-icon blue-icon"><mat-icon>domain</mat-icon></div>
+      </div>
+      <div class="kc-val">{{ totalSaccos() }}</div>
+      <div class="kc-sub">Registered organizations</div>
+    </div>
+
+    <div class="kpi-card small-card">
+      <div class="kc-top">
+        <span class="kc-label">Total Vehicles</span>
+        <div class="kc-icon green-icon"><mat-icon>directions_bus</mat-icon></div>
+      </div>
+      <div class="kc-val">{{ totalVehicles() }}</div>
+      <div class="kc-sub">
+        {{ activeVehicles() }} active ({{ utilizationRate() }}%)
+      </div>
+      <div class="util-micro-bar">
+        <div class="util-fill" [style.width.%]="utilizationRate()"></div>
+      </div>
+    </div>
+
+    <div class="kpi-card small-card">
+      <div class="kc-top">
+        <span class="kc-label">Fleet Owners</span>
+        <div class="kc-icon purple-icon"><mat-icon>manage_accounts</mat-icon></div>
+      </div>
+      <div class="kc-val">{{ totalOwners() }}</div>
+      <div class="kc-sub">Wealth Protector users</div>
+    </div>
+
+    <div class="kpi-card small-card">
+      <div class="kc-top">
+        <span class="kc-label">Crew Members</span>
+        <div class="kc-icon amber-icon"><mat-icon>groups</mat-icon></div>
+      </div>
+      <div class="kc-val">{{ totalCrew() }}</div>
+      <div class="kc-sub">Drivers + conductors</div>
+    </div>
+
+    <div class="kpi-card small-card">
+      <div class="kc-top">
+        <span class="kc-label">SACCO Managers</span>
+        <div class="kc-icon red-icon"><mat-icon>admin_panel_settings</mat-icon></div>
+      </div>
+      <div class="kc-val">{{ totalManagers() }}</div>
+      <div class="kc-sub">Platform operators</div>
+    </div>
+
+    <div class="kpi-card small-card">
+      <div class="kc-top">
+        <span class="kc-label">Total Users</span>
+        <div class="kc-icon blue-icon"><mat-icon>people</mat-icon></div>
+      </div>
+      <div class="kc-val">{{ totalUsers() }}</div>
+      <div class="kc-sub">All registered accounts</div>
+    </div>
+
+  </div>
+
+  <!-- ── CHARTS ROW ───────────────────────────────────────────────── -->
+  <div class="section-label">Financial Analytics</div>
+  <div class="charts-row">
+
+    <!-- Revenue Forecast (bar chart, hand-drawn) -->
+    <div class="chart-card wide-chart">
+      <div class="chart-header">
+        <div>
+          <h3>Revenue Forecast — Next 6 Months</h3>
+          <p>Projected MRR at 12% monthly growth</p>
+        </div>
+        <span class="chart-badge">Projected</span>
+      </div>
+      <div class="bar-chart" *ngIf="forecastSeries().length > 0">
+        <div class="bar-item" *ngFor="let p of forecastSeries()">
+          <div class="bar-col">
+            <span class="bar-value">KSh {{ p.value | number:'1.0-0' }}</span>
+            <div class="bar-fill-wrap">
+              <div class="bar-fill forecast-fill"
+                   [style.height.%]="getBarWidth(p.value, forecastMax())">
+              </div>
+            </div>
+          </div>
+          <span class="bar-label">{{ p.name }}</span>
+        </div>
+      </div>
+      <div class="chart-empty" *ngIf="forecastSeries().length === 0">
+        <mat-icon>bar_chart</mat-icon><p>No forecast data yet</p>
+      </div>
+    </div>
+
+    <!-- Revenue Breakdown (custom donut) -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div>
+          <h3>Revenue Stream Mix</h3>
+          <p>MRR by subscription type</p>
+        </div>
+      </div>
+      <div class="donut-chart" *ngIf="revenueBreakdown().length > 0">
+        <svg viewBox="0 0 120 120" class="donut-svg">
+          <ng-container *ngFor="let seg of donutSegments()">
+            <circle cx="60" cy="60" r="40" fill="none"
+                    [attr.stroke]="seg.color"
+                    stroke-width="18"
+                    [attr.stroke-dasharray]="seg.dash"
+                    [attr.stroke-dashoffset]="seg.offset"
+                    transform="rotate(-90 60 60)"/>
+          </ng-container>
+          <circle cx="60" cy="60" r="28" fill="white"/>
+          <text x="60" y="57" text-anchor="middle"
+                style="font-size:8px;font-weight:800;fill:#0f172a">MRR</text>
+          <text x="60" y="68" text-anchor="middle"
+                style="font-size:6px;fill:#64748b">breakdown</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="dl-item" *ngFor="let r of revenueBreakdown()">
+            <div class="dl-dot" [style.background]="r.color"></div>
+            <div class="dl-body">
+              <span class="dl-name">{{ r.name }}</span>
+              <span class="dl-val">KSh {{ r.value | number }}</span>
+            </div>
+            <span class="dl-pct">
+              {{ breakdownTotal() > 0 ? ((r.value / breakdownTotal()) * 100 | number:'1.0-0') : 0 }}%
+            </span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-empty" *ngIf="revenueBreakdown().length === 0">
+        <mat-icon>donut_large</mat-icon><p>No revenue data yet</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── GROWTH TREND ─────────────────────────────────────────────── -->
+  <div class="chart-card full-width-chart" *ngIf="growthTrend().length > 0">
+    <div class="chart-header">
+      <div>
+        <h3>MRR Growth Trend — Last 6 Months</h3>
+        <p>Historical monthly recurring revenue</p>
+      </div>
+    </div>
+    <div class="line-chart">
+      <svg viewBox="0 0 600 120" class="line-svg" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#3b82f6" stop-opacity=".25"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        <path [attr.d]="getAreaPath()" fill="url(#lineGrad)"/>
+        <path [attr.d]="getLinePath()" fill="none" stroke="#3b82f6"
+              stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <ng-container *ngFor="let p of growthTrend(); let i = index">
+          <circle [attr.cx]="getX(i)" [attr.cy]="getY(p.value)"
+                  r="4" fill="#3b82f6" stroke="#fff" stroke-width="2"/>
+        </ng-container>
+      </svg>
+      <div class="line-labels">
+        <span *ngFor="let p of growthTrend()">{{ p.name }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SACCO TABLE ──────────────────────────────────────────────── -->
+  <div class="section-label">SACCO Performance</div>
+  <div class="table-card">
+    <div class="table-header-row">
+      <div class="th">SACCO</div>
+      <div class="th">Fleet</div>
+      <div class="th">Annual Revenue</div>
+      <div class="th">Manager</div>
+      <div class="th">Status</div>
+    </div>
+    <div class="table-row" *ngFor="let s of saccoTable()">
+      <div class="td sacco-name">
+        <div class="sacco-avatar">{{ s.name.charAt(0) }}</div>
+        <span>{{ s.name }}</span>
+      </div>
+      <div class="td">
+        <mat-icon class="td-icon">directions_bus</mat-icon>
+        {{ s.vehicleCount }} vehicles
+      </div>
+      <div class="td td-amount">KSh {{ s.totalRevenueContributed | number }}</div>
+      <div class="td td-muted">{{ s.managerEmail }}</div>
+      <div class="td">
+        <span class="status-chip"
+              [class.chip-active]="s.status === 'ACTIVE'"
+              [class.chip-suspended]="s.status === 'SUSPENDED'">
+          {{ s.status }}
+        </span>
+      </div>
+    </div>
+    <div class="table-empty" *ngIf="saccoTable().length === 0 && !isLoading()">
+      <mat-icon>domain</mat-icon>
+      <p>No SACCOs onboarded yet</p>
+    </div>
+  </div>
+
+</div>

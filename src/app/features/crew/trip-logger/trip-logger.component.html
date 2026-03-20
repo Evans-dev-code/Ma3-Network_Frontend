@@ -1,0 +1,222 @@
+<div class="mobile-container">
+
+  <!-- STATUS BANNER -->
+  <div class="header-banner" [class.active]="activeTrip()">
+    <div class="status-indicator">
+      <div class="dot" [class.pulse]="activeTrip()"></div>
+      <span>{{ activeTrip() ? activeTrip()!.status : 'IDLE — NO ACTIVE TRIP' }}</span>
+    </div>
+    <div class="vehicle-info">
+      {{ myVehicle() ? myVehicle()!.plateNumber : 'Loading...' }}
+    </div>
+  </div>
+
+  <!-- CONDUCTOR NOTICE — conductors see data but cannot start trips -->
+  <div class="conductor-notice" *ngIf="crewRole() === 'CONDUCTOR'">
+    <mat-icon>info</mat-icon>
+    <span>
+      You are logged in as <strong>Conductor</strong>.
+      Trips are started by the driver. You can log expenses and broadcast GPS below.
+    </span>
+  </div>
+
+  <!-- NO VEHICLE ASSIGNED -->
+  <div class="no-vehicle-banner"
+       *ngIf="!myVehicle() && crewRole() !== 'CONDUCTOR'">
+    <mat-icon>directions_bus</mat-icon>
+    <p>No vehicle assigned to your account.<br>Contact your SACCO manager.</p>
+  </div>
+
+  <!-- START TRIP FORM — driver only -->
+  <mat-card class="form-card"
+            *ngIf="!activeTrip() && myVehicle() && isDriver()">
+    <mat-card-header>
+      <mat-card-title>Start New Trip</mat-card-title>
+      <mat-card-subtitle>
+        {{ myVehicle()!.plateNumber }} · {{ myVehicle()!.route }}
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="tripForm" (ngSubmit)="startNewTrip()">
+
+        <!-- Route dropdown from SACCO API -->
+        <mat-form-field appearance="outline" class="full-width mt-3">
+          <mat-label>Select Route</mat-label>
+          <mat-icon matPrefix>route</mat-icon>
+          <mat-select formControlName="routeName">
+            <mat-option disabled *ngIf="routesLoading()">
+              Loading routes...
+            </mat-option>
+            <mat-option *ngFor="let r of saccoRoutes()" [value]="r.name">
+              {{ r.display }}
+            </mat-option>
+            <mat-option disabled
+                        *ngIf="saccoRoutes().length === 0 && !routesLoading()">
+              No routes defined — ask your SACCO manager to add routes
+            </mat-option>
+          </mat-select>
+          <mat-error>Route is required</mat-error>
+        </mat-form-field>
+
+        <button mat-flat-button color="primary" type="submit"
+                class="action-btn start-btn"
+                [disabled]="isLoading() || tripForm.invalid
+                         || saccoRoutes().length === 0">
+          <mat-icon *ngIf="!isLoading()">play_arrow</mat-icon>
+          {{ isLoading() ? 'Processing...' : 'Start Boarding' }}
+        </button>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- ACTIVE TRIP DASHBOARD -->
+  <div class="active-trip-dashboard" *ngIf="activeTrip()">
+
+    <mat-card class="info-card mb-4">
+      <mat-card-content class="trip-details">
+        <div class="detail">
+          <span class="label">Route</span>
+          <span class="value">{{ activeTrip()!.routeName }}</span>
+        </div>
+        <div class="detail">
+          <span class="label">Start Time</span>
+          <span class="value">{{ activeTrip()!.startTime | date:'shortTime' }}</span>
+        </div>
+        <div class="detail">
+          <span class="label">Vehicle</span>
+          <span class="value">{{ activeTrip()!.plateNumber }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- GPS Toggle — both driver and conductor can broadcast -->
+    <div class="gps-toggle-container" *ngIf="!isFinalizing()">
+      <button mat-flat-button
+              [color]="isTrackingGps() ? 'warn' : 'accent'"
+              class="gps-btn"
+              (click)="toggleGpsTracking()">
+        <mat-icon>{{ isTrackingGps() ? 'gps_off' : 'my_location' }}</mat-icon>
+        {{ isTrackingGps() ? 'Stop GPS Broadcast' : 'Start Live GPS' }}
+      </button>
+      <p class="gps-help" *ngIf="isTrackingGps()">
+        Transmitting live location to Owner map.
+      </p>
+    </div>
+
+    <!-- Trip status actions — driver only -->
+    <div class="action-grid" *ngIf="isDriver()">
+      <ng-container *ngIf="!isFinalizing()">
+
+        <button mat-flat-button class="action-btn enroute-btn"
+                *ngIf="activeTrip()!.status === 'BOARDING'"
+                [disabled]="isLoading()"
+                (click)="changeTripStatus('EN_ROUTE')">
+          <mat-icon>directions_bus</mat-icon>
+          Depart Stage
+        </button>
+
+        <button mat-flat-button class="action-btn complete-btn"
+                *ngIf="activeTrip()!.status === 'EN_ROUTE'"
+                [disabled]="isLoading()"
+                (click)="changeTripStatus('COMPLETED')">
+          <mat-icon>check_circle</mat-icon>
+          Arrived — Complete Trip
+        </button>
+
+      </ng-container>
+
+      <!-- FINALIZE FORM -->
+      <mat-card class="finalize-card" *ngIf="isFinalizing()">
+        <mat-card-header>
+          <mat-card-title>Log Trip Revenue &amp; Costs</mat-card-title>
+          <mat-card-subtitle>
+            This data feeds directly into the Owner's profit dashboard
+          </mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <form [formGroup]="finalizeForm" (ngSubmit)="submitFinalTripData()">
+
+            <div class="row-inputs mt-3">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Passengers</mat-label>
+                <input matInput type="number" formControlName="passengerCount" placeholder="0">
+                <mat-icon matPrefix>groups</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Total Cash (KSh)</mat-label>
+                <input matInput type="number" formControlName="totalRevenue" placeholder="0">
+                <mat-icon matPrefix>payments</mat-icon>
+              </mat-form-field>
+            </div>
+
+            <div class="expense-section-label">
+              <mat-icon>receipt_long</mat-icon>
+              Deductions (reduces Owner's expenses)
+            </div>
+
+            <div class="row-inputs">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Fuel (KSh)</mat-label>
+                <input matInput type="number" formControlName="fuelExpense" placeholder="0">
+                <mat-icon matPrefix>local_gas_station</mat-icon>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Other (KSh)</mat-label>
+                <input matInput type="number" formControlName="otherExpenses" placeholder="0">
+                <mat-icon matPrefix>receipt</mat-icon>
+                <mat-hint>Police, stage fees</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <div class="net-preview" *ngIf="finalizeForm.value.totalRevenue > 0">
+              <span class="net-label">Est. Net Profit</span>
+              <span class="net-value">
+                KSh {{
+                  (finalizeForm.value.totalRevenue   || 0)
+                  - (finalizeForm.value.fuelExpense  || 0)
+                  - (finalizeForm.value.otherExpenses || 0)
+                  | number:'1.0-0'
+                }}
+              </span>
+            </div>
+
+            <div class="finalize-actions">
+              <button mat-button type="button" (click)="isFinalizing.set(false)">
+                Cancel
+              </button>
+              <button mat-flat-button color="primary" type="submit"
+                      [disabled]="finalizeForm.invalid || isLoading()">
+                {{ isLoading() ? 'Saving...' : 'Save &amp; Close Trip' }}
+              </button>
+            </div>
+
+          </form>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+  </div>
+
+  <!-- TODAY'S SUMMARY -->
+  <mat-card class="summary-card" *ngIf="todayTrips().length > 0">
+    <mat-card-content>
+      <div class="summary-header">Today's Summary</div>
+      <div class="summary-stats">
+        <div class="stat">
+          <span class="stat-label">Trips</span>
+          <span class="stat-val">{{ todayTrips().length }}</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Gross</span>
+          <span class="stat-val green">KSh {{ dailyRevenue() | number:'1.0-0' }}</span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">Net</span>
+          <span class="stat-val emerald">KSh {{ dailyNetProfit() | number:'1.0-0' }}</span>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+</div>

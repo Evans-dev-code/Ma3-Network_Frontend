@@ -1,0 +1,495 @@
+<!-- Backdrop -->
+<div class="pp-backdrop" [class.pp-visible]="isOpen" (click)="close()"></div>
+
+<!-- Panel -->
+<div class="pp-panel" [class.pp-open]="isOpen">
+
+  <!-- ── HEADER ──────────────────────────────────────────────────── -->
+  <div class="pp-header">
+
+    <div class="pp-avatar">
+      <span>{{ initials() }}</span>
+      <div class="pp-role-dot"
+           [style.background]="role === 'OWNER' ? '#10b981' :
+                               role === 'SACCO_MANAGER' ? '#3b82f6' :
+                               role === 'CREW' ? '#f59e0b' : '#8b5cf6'">
+      </div>
+    </div>
+
+    <div class="pp-header-info" *ngIf="!isLoading()">
+      <span class="pp-full-name">{{ fullName() }}</span>
+      <span class="pp-role-tag">{{ roleLabel() }}</span>
+      <span class="pp-email">{{ profile()?.email }}</span>
+    </div>
+
+    <div class="pp-header-skeleton" *ngIf="isLoading()">
+      <div class="sk sk-name"></div>
+      <div class="sk sk-role"></div>
+    </div>
+
+    <button class="pp-close-btn" (click)="close()">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- Alert if documents need attention -->
+  <div class="pp-doc-alert"
+       *ngIf="(expiredDocs() > 0 || expiringDocs() > 0) && activeTab() !== 'documents'">
+    <mat-icon>warning</mat-icon>
+    <span>
+      <ng-container *ngIf="expiredDocs() > 0">
+        {{ expiredDocs() }} expired document{{ expiredDocs() > 1 ? 's' : '' }}.&nbsp;
+      </ng-container>
+      <ng-container *ngIf="expiringDocs() > 0">
+        {{ expiringDocs() }} expiring soon.
+      </ng-container>
+    </span>
+    <button class="alert-view-btn" (click)="setTab('documents')">View</button>
+  </div>
+
+  <!-- ── TABS ────────────────────────────────────────────────────── -->
+  <div class="pp-tabs">
+    <button class="pp-tab" [class.active]="activeTab() === 'profile'"
+            (click)="setTab('profile')">
+      <mat-icon>person</mat-icon>
+      <span>Profile</span>
+    </button>
+    <button class="pp-tab" [class.active]="activeTab() === 'documents'"
+            (click)="setTab('documents')">
+      <mat-icon>folder_open</mat-icon>
+      <span>Documents</span>
+      <span class="tab-badge" *ngIf="documents().length > 0">
+        {{ documents().length }}
+      </span>
+      <span class="tab-badge warn" *ngIf="expiredDocs() + expiringDocs() > 0">
+        {{ expiredDocs() + expiringDocs() }}
+      </span>
+    </button>
+    <button class="pp-tab" [class.active]="activeTab() === 'security'"
+            (click)="setTab('security')">
+      <mat-icon>lock</mat-icon>
+      <span>Security</span>
+    </button>
+    <button class="pp-tab" *ngIf="role === 'SACCO_MANAGER'"
+            [class.active]="activeTab() === 'sacco'"
+            (click)="setTab('sacco')">
+      <mat-icon>domain</mat-icon>
+      <span>SACCO</span>
+    </button>
+  </div>
+
+  <!-- ── BODY ────────────────────────────────────────────────────── -->
+  <div class="pp-body">
+
+    <div class="pp-skeleton" *ngIf="isLoading()">
+      <div class="sk sk-line" *ngFor="let i of [1,2,3,4]"></div>
+    </div>
+
+    <ng-container *ngIf="!isLoading()">
+
+      <!-- ══ PROFILE TAB ════════════════════════════════════════════ -->
+      <div class="pp-tab-content" *ngIf="activeTab() === 'profile'">
+
+        <div class="info-grid" *ngIf="!editingProfile()">
+          <div class="ig-item">
+            <span class="ig-label">First Name</span>
+            <span class="ig-val">{{ profile()?.firstName }}</span>
+          </div>
+          <div class="ig-item">
+            <span class="ig-label">Last Name</span>
+            <span class="ig-val">{{ profile()?.lastName }}</span>
+          </div>
+          <div class="ig-item full">
+            <span class="ig-label">Email Address</span>
+            <span class="ig-val">{{ profile()?.email }}</span>
+            <span class="ig-note">Email cannot be changed. Contact support.</span>
+          </div>
+          <div class="ig-item full">
+            <span class="ig-label">Phone Number</span>
+            <span class="ig-val">{{ profile()?.phoneNumber }}</span>
+          </div>
+          <div class="ig-item full">
+            <span class="ig-label">Role</span>
+            <div class="ig-role-chip">{{ roleLabel() }}</div>
+          </div>
+        </div>
+
+        <button class="pp-edit-btn" *ngIf="!editingProfile()"
+                (click)="editingProfile.set(true)">
+          <mat-icon>edit</mat-icon>
+          Edit Profile
+        </button>
+
+        <form [formGroup]="profileForm" *ngIf="editingProfile()" class="pp-form">
+          <div class="name-row">
+            <div class="pp-field">
+              <label>First Name <span class="req">*</span></label>
+              <div class="pp-inp"
+                   [class.err]="profileForm.get('firstName')?.invalid
+                              && profileForm.get('firstName')?.touched">
+                <mat-icon>person_outline</mat-icon>
+                <input formControlName="firstName" placeholder="John">
+              </div>
+            </div>
+            <div class="pp-field">
+              <label>Last Name <span class="req">*</span></label>
+              <div class="pp-inp"
+                   [class.err]="profileForm.get('lastName')?.invalid
+                              && profileForm.get('lastName')?.touched">
+                <mat-icon>person_outline</mat-icon>
+                <input formControlName="lastName" placeholder="Kamau">
+              </div>
+            </div>
+          </div>
+
+          <div class="pp-field">
+            <label>Phone Number <span class="req">*</span></label>
+            <div class="pp-inp"
+                 [class.err]="profileForm.get('phoneNumber')?.invalid
+                            && profileForm.get('phoneNumber')?.touched">
+              <mat-icon>phone</mat-icon>
+              <input formControlName="phoneNumber" type="tel" placeholder="07...">
+            </div>
+            <span class="f-err"
+                  *ngIf="profileForm.get('phoneNumber')?.invalid
+                      && profileForm.get('phoneNumber')?.touched">
+              Enter a 10–12 digit number
+            </span>
+          </div>
+
+          <div class="pp-form-actions">
+            <button type="button" class="pp-cancel-btn"
+                    (click)="editingProfile.set(false)">Cancel</button>
+            <button type="button" class="pp-save-btn"
+                    [disabled]="profileForm.invalid || isSaving()"
+                    (click)="saveProfile()">
+              <span class="btn-spin" *ngIf="isSaving()"></span>
+              <mat-icon *ngIf="!isSaving()">check</mat-icon>
+              {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+            </button>
+          </div>
+        </form>
+
+      </div>
+
+      <!-- ══ DOCUMENTS TAB ══════════════════════════════════════════ -->
+      <div class="pp-tab-content" *ngIf="activeTab() === 'documents'">
+
+        <div class="upload-section">
+          <div class="upload-section-label">Upload New Document</div>
+
+          <div class="drop-zone"
+               [class.dz-over]="dragOver()"
+               [class.dz-has-file]="selectedFile()"
+               (dragover)="onDragOver($event)"
+               (dragleave)="onDragLeave()"
+               (drop)="onDrop($event)"
+               (click)="fileInput.click()">
+            <input #fileInput type="file" hidden
+                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                   (change)="onFileSelected($event)">
+
+            <ng-container *ngIf="!selectedFile()">
+              <div class="dz-icon"><mat-icon>cloud_upload</mat-icon></div>
+              <div class="dz-text">
+                <strong>Click to upload</strong> or drag and drop
+              </div>
+              <div class="dz-hint">PDF, JPG, PNG, Word · max 10 MB</div>
+            </ng-container>
+
+            <ng-container *ngIf="selectedFile() as f">
+              <div class="dz-file-preview">
+                <div class="dfp-icon">
+                  <mat-icon>description</mat-icon>
+                </div>
+                <div class="dfp-info">
+                  <span class="dfp-name">{{ f.name }}</span>
+                  <span class="dfp-size">{{ (f.size / 1024 / 1024).toFixed(2) }} MB</span>
+                </div>
+                <button class="dfp-clear"
+                        (click)="$event.stopPropagation(); selectedFile.set(null)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            </ng-container>
+          </div>
+
+          <form [formGroup]="uploadForm" class="upload-meta">
+            <div class="pp-field">
+              <label>Document Type <span class="req">*</span></label>
+              <div class="pp-select-wrap">
+                <mat-icon>folder</mat-icon>
+                <select formControlName="documentType">
+                  <option value="" disabled selected>Select type</option>
+                  <option *ngFor="let t of docTypes()" [value]="t.value">
+                    {{ t.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="pp-field">
+              <label>Expiry Date <span class="optional">(optional)</span></label>
+              <div class="pp-inp">
+                <mat-icon>event</mat-icon>
+                <input formControlName="expiryDate" type="date">
+              </div>
+            </div>
+
+            <button type="button" class="pp-upload-btn"
+                    [disabled]="!selectedFile()
+                             || uploadForm.get('documentType')?.invalid
+                             || isUploading()"
+                    (click)="uploadDocument()">
+              <span class="btn-spin" *ngIf="isUploading()"></span>
+              <mat-icon *ngIf="!isUploading()">upload</mat-icon>
+              {{ isUploading() ? 'Uploading...' : 'Upload Document' }}
+            </button>
+          </form>
+        </div>
+
+        <div class="doc-list-section">
+          <div class="doc-list-label">
+            My Documents
+            <span class="dl-count">{{ documents().length }}</span>
+          </div>
+
+          <div class="doc-empty" *ngIf="documents().length === 0">
+            <mat-icon>folder_open</mat-icon>
+            <p>No documents uploaded yet</p>
+          </div>
+
+          <div class="doc-item"
+               *ngFor="let d of documents()"
+               [class.doc-expired]="d.expiryStatus === 'EXPIRED'"
+               [class.doc-expiring]="d.expiryStatus === 'EXPIRING'">
+
+            <!--
+              FIX: replaced d.mimeType?.includes() with getMimeBg/getMimeColor/getMimeIcon
+              helpers to resolve NG8107 optional chain warnings on a possibly-null value
+            -->
+            <div class="di-icon-wrap"
+                 [style.background]="getMimeBg(d.mimeType)">
+              <mat-icon [style.color]="getMimeColor(d.mimeType)">
+                {{ getMimeIcon(d.mimeType) }}
+              </mat-icon>
+            </div>
+
+            <div class="di-body">
+              <span class="di-type">{{ getDocTypeLabel(d.documentType) }}</span>
+              <span class="di-name">{{ d.fileName }}</span>
+              <div class="di-meta">
+                <span class="di-size">{{ d.fileSize }}</span>
+                <span class="di-dot">·</span>
+                <span class="di-date"
+                      [style.color]="getExpiryColor(d.expiryStatus)"
+                      *ngIf="d.expiryDate">
+                  {{ d.expiryStatus === 'EXPIRED'  ? 'Expired'                    :
+                     d.expiryStatus === 'EXPIRING' ? d.daysUntilExpiry + 'd left' :
+                     'Expires ' + (d.expiryDate | date:'d MMM y') }}
+                </span>
+                <span class="di-no-expiry" *ngIf="!d.expiryDate">No expiry</span>
+              </div>
+            </div>
+
+            <div class="di-delete-confirm" *ngIf="deleteConfirmId() === d.id">
+              <span>Delete?</span>
+              <button class="dc-yes" (click)="deleteDocument(d.id)">Yes</button>
+              <button class="dc-no"  (click)="cancelDelete()">No</button>
+            </div>
+
+            <button class="di-del-btn"
+                    *ngIf="deleteConfirmId() !== d.id"
+                    (click)="confirmDelete(d.id)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ══ SECURITY TAB ═══════════════════════════════════════════ -->
+      <div class="pp-tab-content" *ngIf="activeTab() === 'security'">
+
+        <div class="security-notice">
+          <mat-icon>info</mat-icon>
+          <span>
+            After changing your password you will be signed out
+            and asked to sign in again.
+          </span>
+        </div>
+
+        <form [formGroup]="passwordForm" class="pp-form">
+
+          <div class="pp-field">
+            <label>Current Password <span class="req">*</span></label>
+            <div class="pp-inp"
+                 [class.err]="passwordForm.get('oldPassword')?.invalid
+                            && passwordForm.get('oldPassword')?.touched">
+              <mat-icon>lock_outline</mat-icon>
+              <input [type]="hideOldPw() ? 'password' : 'text'"
+                     formControlName="oldPassword"
+                     placeholder="Your current password">
+              <button type="button" class="pw-eye" (click)="toggleOldPw()">
+                <mat-icon>{{ hideOldPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <div class="pp-field">
+            <label>New Password <span class="req">*</span></label>
+            <div class="pp-inp"
+                 [class.err]="passwordForm.get('newPassword')?.invalid
+                            && passwordForm.get('newPassword')?.touched">
+              <mat-icon>lock</mat-icon>
+              <input [type]="hideNewPw() ? 'password' : 'text'"
+                     formControlName="newPassword"
+                     placeholder="Minimum 6 characters">
+              <button type="button" class="pw-eye" (click)="toggleNewPw()">
+                <mat-icon>{{ hideNewPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+            <div class="pw-strength" *ngIf="pwStrength() as s">
+              <div class="pws-bar">
+                <div class="pws-fill"
+                     [style.width.%]="s.pct"
+                     [style.background]="s.color">
+                </div>
+              </div>
+              <span [style.color]="s.color">{{ s.label }}</span>
+            </div>
+          </div>
+
+          <div class="pp-field">
+            <label>Confirm New Password <span class="req">*</span></label>
+            <div class="pp-inp"
+                 [class.err]="passwordForm.get('confirmPw')?.invalid
+                            && passwordForm.get('confirmPw')?.touched">
+              <mat-icon>lock</mat-icon>
+              <input [type]="hideConfPw() ? 'password' : 'text'"
+                     formControlName="confirmPw"
+                     placeholder="Repeat new password">
+              <button type="button" class="pw-eye" (click)="toggleConfPw()">
+                <mat-icon>{{ hideConfPw() ? 'visibility_off' : 'visibility' }}</mat-icon>
+              </button>
+            </div>
+            <span class="f-err"
+                  *ngIf="passwordForm.get('newPassword')?.value
+                      && passwordForm.get('confirmPw')?.value
+                      && passwordForm.get('newPassword')?.value
+                         !== passwordForm.get('confirmPw')?.value">
+              Passwords do not match
+            </span>
+          </div>
+
+          <button type="button" class="pp-save-btn full-width-btn"
+                  [disabled]="passwordForm.invalid || isSaving()"
+                  (click)="changePassword()">
+            <span class="btn-spin" *ngIf="isSaving()"></span>
+            <mat-icon *ngIf="!isSaving()">lock_reset</mat-icon>
+            {{ isSaving() ? 'Changing...' : 'Change Password' }}
+          </button>
+
+        </form>
+
+      </div>
+
+      <!-- ══ SACCO TAB ═════════════════════════════════════════════ -->
+      <div class="pp-tab-content" *ngIf="activeTab() === 'sacco'">
+
+        <ng-container *ngIf="mySacco() as s">
+
+          <div class="info-grid" *ngIf="!editingSacco()">
+            <div class="ig-item full">
+              <span class="ig-label">SACCO Name</span>
+              <span class="ig-val">{{ s.name }}</span>
+            </div>
+            <div class="ig-item full">
+              <span class="ig-label">Registration Number</span>
+              <span class="ig-val">{{ s.registrationNumber }}</span>
+            </div>
+            <div class="ig-item full">
+              <span class="ig-label">Contact Phone</span>
+              <span class="ig-val">{{ s.contactPhone }}</span>
+            </div>
+            <div class="ig-item">
+              <span class="ig-label">Subscription Tier</span>
+              <div class="ig-role-chip blue-chip">{{ s.tier }}</div>
+            </div>
+            <div class="ig-item">
+              <span class="ig-label">Max Vehicles</span>
+              <span class="ig-val">{{ s.maxVehicles }}</span>
+            </div>
+            <div class="ig-item full">
+              <span class="ig-label">Monthly Fee</span>
+              <span class="ig-val green-val">KSh {{ s.monthlyFee | number }}</span>
+            </div>
+            <div class="ig-item full">
+              <span class="ig-label">Subscription Status</span>
+              <span class="sacco-status"
+                    [class.status-active]="s.subscriptionStatus === 'ACTIVE'"
+                    [class.status-pending]="s.subscriptionStatus === 'PENDING'">
+                {{ s.subscriptionStatus }}
+              </span>
+            </div>
+          </div>
+
+          <button class="pp-edit-btn" *ngIf="!editingSacco()"
+                  (click)="editingSacco.set(true)">
+            <mat-icon>edit</mat-icon>
+            Edit SACCO Details
+          </button>
+
+          <form [formGroup]="saccoForm" *ngIf="editingSacco()" class="pp-form">
+
+            <div class="pp-field">
+              <label>SACCO Name <span class="req">*</span></label>
+              <div class="pp-inp">
+                <mat-icon>business</mat-icon>
+                <input formControlName="name" placeholder="SACCO name">
+              </div>
+            </div>
+
+            <div class="pp-field">
+              <label>Contact Phone <span class="req">*</span></label>
+              <div class="pp-inp"
+                   [class.err]="saccoForm.get('contactPhone')?.invalid
+                              && saccoForm.get('contactPhone')?.touched">
+                <mat-icon>phone</mat-icon>
+                <input formControlName="contactPhone" type="tel" placeholder="07...">
+              </div>
+              <span class="f-err"
+                    *ngIf="saccoForm.get('contactPhone')?.invalid
+                        && saccoForm.get('contactPhone')?.touched">
+                Enter a 10–12 digit number
+              </span>
+            </div>
+
+            <div class="pp-form-actions">
+              <button type="button" class="pp-cancel-btn"
+                      (click)="editingSacco.set(false)">Cancel</button>
+              <button type="button" class="pp-save-btn"
+                      [disabled]="saccoForm.invalid || isSaving()"
+                      (click)="saveSacco()">
+                <span class="btn-spin" *ngIf="isSaving()"></span>
+                <mat-icon *ngIf="!isSaving()">check</mat-icon>
+                {{ isSaving() ? 'Saving...' : 'Save Changes' }}
+              </button>
+            </div>
+
+          </form>
+
+        </ng-container>
+
+        <div class="pp-empty" *ngIf="!mySacco()">
+          <mat-icon>domain_disabled</mat-icon>
+          <p>No SACCO assigned to your account</p>
+        </div>
+
+      </div>
+
+    </ng-container>
+  </div>
+
+</div>

@@ -1,0 +1,147 @@
+<div class="layout-root" [class.dark]="isDark()" [class.nav-open]="sidenavOpen()">
+
+  <!-- ══ SIDEBAR ══════════════════════════════════════════════════════ -->
+  <aside class="sidenav" [class.open]="sidenavOpen()">
+
+    <!-- Brand -->
+    <div class="brand">
+      <div class="brand-icon-wrap">
+        <mat-icon>directions_bus</mat-icon>
+      </div>
+      <div class="brand-text" *ngIf="sidenavOpen()">
+        <span class="brand-name">Ma3 Network</span>
+        <span class="brand-role">{{ getRoleLabel() }}</span>
+      </div>
+      <button class="close-btn" *ngIf="sidenavOpen() && isMobile()"
+              (click)="toggleSidenav()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <!-- Nav Items -->
+    <nav class="nav-list">
+      <a class="nav-item"
+         *ngFor="let item of navItems()"
+         [routerLink]="item.route"
+         routerLinkActive="active"
+         [matTooltip]="!sidenavOpen() ? item.label : ''"
+         matTooltipPosition="right"
+         (click)="isMobile() && toggleSidenav()">
+        <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+        <span class="nav-label" *ngIf="sidenavOpen()">{{ item.label }}</span>
+      </a>
+    </nav>
+
+    <!-- Bottom — open state: avatar + profile trigger + logout -->
+    <div class="nav-bottom" *ngIf="sidenavOpen()">
+      <button class="user-info-btn" (click)="toggleProfile()"
+              [class.profile-active]="profileOpen()">
+        <div class="user-avatar"
+             [style.background]="getRoleColor()">
+          {{ userInitial() }}
+        </div>
+        <div class="user-details">
+          <span class="user-email-text">{{ userEmail() }}</span>
+          <span class="user-role-text">{{ getRoleLabel() }}</span>
+        </div>
+        <mat-icon class="user-profile-icon">
+          {{ profileOpen() ? 'account_circle' : 'chevron_right' }}
+        </mat-icon>
+      </button>
+      <button class="logout-btn" (click)="logout()"
+              matTooltip="Sign out" matTooltipPosition="right">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
+
+    <!-- Bottom — collapsed state: just profile + logout icons -->
+    <div class="nav-bottom-collapsed" *ngIf="!sidenavOpen()">
+      <button class="nav-item profile-icon-btn"
+              (click)="toggleProfile()"
+              [class.active]="profileOpen()"
+              matTooltip="My Profile" matTooltipPosition="right">
+        <div class="collapsed-avatar" [style.background]="getRoleColor()">
+          {{ userInitial() }}
+        </div>
+      </button>
+      <button class="nav-item logout-icon" (click)="logout()"
+              matTooltip="Sign out" matTooltipPosition="right">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- Mobile backdrop -->
+  <div class="backdrop"
+       *ngIf="sidenavOpen() && isMobile()"
+       (click)="toggleSidenav()">
+  </div>
+
+  <!-- ══ MAIN ═════════════════════════════════════════════════════════ -->
+  <div class="main-wrapper">
+
+    <!-- Toolbar -->
+    <header class="toolbar">
+      <button class="menu-btn" (click)="toggleSidenav()"
+              [matTooltip]="sidenavOpen() ? 'Close menu' : 'Open menu'">
+        <mat-icon>{{ sidenavOpen() ? 'menu_open' : 'menu' }}</mat-icon>
+      </button>
+
+      <div class="toolbar-brand" *ngIf="isMobile()">
+        <mat-icon class="tb-bus">directions_bus</mat-icon>
+        <span>Ma3 Network</span>
+      </div>
+
+      <div class="toolbar-spacer"></div>
+
+      <div class="toolbar-right">
+
+        <!-- Profile button — desktop shows pill, mobile shows avatar only -->
+        <button class="profile-pill"
+        (click)="toggleProfile()"
+        [class.pill-active]="profileOpen()"
+        [matTooltip]="isMobile() ? 'My Profile' : ''">
+
+          <div class="pp-avatar-sm"
+               [style.background]="getRoleColor()">
+            {{ userInitial() }}
+          </div>
+
+          <ng-container *ngIf="!isMobile()">
+            <div class="pp-meta">
+              <span class="pp-email">{{ userEmail() }}</span>
+              <span class="pp-role">{{ getRoleLabel() }}</span>
+            </div>
+            <mat-icon class="pp-chevron">
+              {{ profileOpen() ? 'expand_less' : 'expand_more' }}
+            </mat-icon>
+          </ng-container>
+
+        </button>
+
+        <!-- Logout button -->
+        <button class="toolbar-icon-btn" (click)="logout()"
+                matTooltip="Sign out">
+          <mat-icon>logout</mat-icon>
+        </button>
+
+      </div>
+    </header>
+
+    <!-- Page content -->
+    <main class="page-content">
+      <router-outlet></router-outlet>
+    </main>
+
+  </div>
+
+  <!-- ══ PROFILE PANEL ═════════════════════════════════════════════ -->
+  <app-profile-panel
+    [isOpen]="profileOpen()"
+    [role]="userRole()"
+    (closed)="closeProfile()"
+    (profileUpdated)="onProfileUpdated($event)">
+  </app-profile-panel>
+
+</div>

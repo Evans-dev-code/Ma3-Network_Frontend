@@ -1,0 +1,329 @@
+// ══════════════════════════════════════════════════════════════════════
+// LIGHT THEME TOKENS
+// ══════════════════════════════════════════════════════════════════════
+.layout-root {
+  --nav-bg:        #ffffff;
+  --nav-border:    #e2e8f0;
+  --nav-text:      #475569;
+  --nav-hover:     #f1f5f9;
+  --nav-active-bg: #e0f2fe;
+  --nav-active:    #0284c7;
+  --brand-bg:      #f8fafc;
+  --brand-text:    #0f172a;
+  --brand-sub:     #64748b;
+  --toolbar-bg:    #ffffff;
+  --toolbar-border:#e2e8f0;
+  --toolbar-text:  #0f172a;
+  --toolbar-muted: #64748b;
+  --page-bg:       #f1f5f9;
+  --icon-color:    #64748b;
+  --avatar-bg:     #0284c7;
+  --avatar-text:   #ffffff;
+
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  background: var(--page-bg);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// DARK THEME TOKENS
+// ══════════════════════════════════════════════════════════════════════
+.layout-root.dark {
+  --nav-bg:        #0f172a;
+  --nav-border:    rgba(255,255,255,0.07);
+  --nav-text:      #94a3b8;
+  --nav-hover:     rgba(255,255,255,0.04);
+  --nav-active-bg: rgba(16,185,129,0.12);
+  --nav-active:    #10b981;
+  --brand-bg:      #0a1020;
+  --brand-text:    #f1f5f9;
+  --brand-sub:     #64748b;
+  --toolbar-bg:    #0a1020;
+  --toolbar-border:rgba(255,255,255,0.06);
+  --toolbar-text:  #f1f5f9;
+  --toolbar-muted: #94a3b8;
+  --page-bg:       #060d18;
+  --icon-color:    #94a3b8;
+  --avatar-bg:     #10b981;
+  --avatar-text:   #ffffff;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// SIDENAV
+// ══════════════════════════════════════════════════════════════════════
+.sidenav {
+  width: 56px;
+  height: 100vh;
+  flex-shrink: 0;
+  background: var(--nav-bg);
+  border-right: 1px solid var(--nav-border);
+  display: flex;
+  flex-direction: column;
+  transition: width .25s ease;
+  overflow: hidden;
+  z-index: 200;
+  position: relative;
+
+  &.open { width: 240px; }
+
+  @media(max-width:639px) {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 0; box-shadow: none;
+    &.open { width: 260px; box-shadow: 4px 0 24px rgba(0,0,0,.3); }
+  }
+}
+
+// ── Brand ─────────────────────────────────────────────────────────────
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 12px; background: var(--brand-bg);
+  border-bottom: 1px solid var(--nav-border);
+  min-height: 60px; flex-shrink: 0; overflow: hidden;
+}
+
+.brand-icon-wrap {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--nav-active-bg);
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  mat-icon { font-size: 18px; width: 18px; height: 18px; color: var(--nav-active) !important; }
+}
+
+.brand-text {
+  display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1;
+  .brand-name { font-size: .92rem; font-weight: 800; color: var(--brand-text);
+                white-space: nowrap; letter-spacing: -.01em; }
+  .brand-role { font-size: .62rem; color: var(--brand-sub); white-space: nowrap;
+                text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+}
+
+.close-btn {
+  background: transparent; border: none; cursor: pointer; padding: 4px;
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; margin-left: auto; transition: background .15s;
+  &:hover { background: var(--nav-hover); }
+  mat-icon { font-size: 18px; color: var(--icon-color) !important; }
+}
+
+// ── Nav Items ─────────────────────────────────────────────────────────
+.nav-list {
+  flex: 1; padding: 8px 0; display: flex; flex-direction: column; gap: 2px;
+  overflow-y: auto; overflow-x: hidden; scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}
+
+.nav-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; margin: 0 6px; border-radius: 8px;
+  cursor: pointer; text-decoration: none; color: var(--nav-text);
+  font-size: .82rem; font-weight: 600; white-space: nowrap;
+  transition: background .15s, color .15s; overflow: hidden;
+
+  &:hover { background: var(--nav-hover); color: var(--brand-text); }
+  &.active {
+    background: var(--nav-active-bg); color: var(--nav-active);
+    .nav-icon { color: var(--nav-active) !important; }
+  }
+
+  .nav-icon {
+    font-size: 20px; width: 20px; height: 20px; flex-shrink: 0;
+    color: var(--icon-color) !important; transition: color .15s;
+  }
+  &:hover .nav-icon { color: var(--brand-text) !important; }
+  .nav-label { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+}
+
+// ── Nav Bottom ────────────────────────────────────────────────────────
+.nav-bottom {
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 8px; border-top: 1px solid var(--nav-border);
+  flex-shrink: 0; overflow: hidden;
+}
+
+// Profile trigger button in sidebar
+.user-info-btn {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid transparent;
+  border-radius: 9px; padding: 6px 8px; cursor: pointer;
+  transition: background .15s, border-color .15s;
+  overflow: hidden;
+
+  &:hover, &.profile-active {
+    background: var(--nav-hover);
+    border-color: var(--nav-border);
+  }
+
+  .user-avatar {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: .72rem; font-weight: 800;
+  }
+
+  .user-details { flex: 1; min-width: 0; text-align: left;
+    .user-email-text { display: block; font-size: .68rem; font-weight: 600;
+                       color: var(--brand-text); white-space: nowrap;
+                       overflow: hidden; text-overflow: ellipsis; }
+    .user-role-text  { display: block; font-size: .58rem; color: var(--brand-sub);
+                       text-transform: uppercase; letter-spacing: .05em; }
+  }
+
+  .user-profile-icon {
+    font-size: 14px; width: 14px; height: 14px; flex-shrink: 0;
+    color: var(--icon-color) !important; opacity: .6;
+  }
+}
+
+.logout-btn {
+  background: transparent; border: 1px solid var(--nav-border);
+  border-radius: 7px; width: 30px; height: 30px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s;
+  &:hover { background: rgba(244,63,94,.08); border-color: rgba(244,63,94,.3); }
+  mat-icon { font-size: 16px; color: var(--icon-color) !important; }
+  &:hover mat-icon { color: #f43f5e !important; }
+}
+
+// ── Nav Bottom Collapsed ──────────────────────────────────────────────
+.nav-bottom-collapsed {
+  padding: 8px 6px; border-top: 1px solid var(--nav-border);
+  flex-shrink: 0; display: flex; flex-direction: column; gap: 4px;
+
+  .logout-icon {
+    margin: 0; width: 100%; justify-content: center; color: var(--nav-text);
+    &:hover mat-icon { color: #f43f5e !important; }
+  }
+}
+
+.profile-icon-btn {
+  width: 100%; justify-content: center; padding: 8px 0;
+  background: transparent; border: 1px solid transparent;
+  &:hover, &.active {
+    background: var(--nav-hover); border-color: var(--nav-border);
+  }
+}
+
+.collapsed-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  color: #fff; display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 800;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// BACKDROP
+// ══════════════════════════════════════════════════════════════════════
+.backdrop {
+  position: fixed; inset: 0; z-index: 199;
+  background: rgba(0,0,0,.5); backdrop-filter: blur(2px);
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// MAIN WRAPPER
+// ══════════════════════════════════════════════════════════════════════
+.main-wrapper {
+  flex: 1; display: flex; flex-direction: column;
+  overflow: hidden; min-width: 0;
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// TOOLBAR
+// ══════════════════════════════════════════════════════════════════════
+.toolbar {
+  height: 52px; min-height: 52px;
+  background: var(--toolbar-bg);
+  border-bottom: 1px solid var(--toolbar-border);
+  display: flex; align-items: center;
+  padding: 0 12px; gap: 10px; flex-shrink: 0; z-index: 10;
+}
+
+.menu-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: transparent; border: 1px solid var(--toolbar-border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; flex-shrink: 0; transition: all .2s;
+  &:hover { background: var(--nav-hover); }
+  mat-icon { font-size: 20px; color: var(--icon-color) !important; }
+}
+
+.toolbar-brand {
+  display: flex; align-items: center; gap: 6px;
+  font-size: .88rem; font-weight: 800; color: var(--toolbar-text); letter-spacing: -.01em;
+  .tb-bus { font-size: 18px; width: 18px; height: 18px; color: var(--nav-active) !important; }
+}
+
+.toolbar-spacer { flex: 1; }
+
+.toolbar-right {
+  display: flex; align-items: center; gap: 8px;
+}
+
+// ── Profile pill in toolbar ───────────────────────────────────────────
+.profile-pill {
+  display: flex; align-items: center; gap: 8px;
+  background: transparent; border: 1px solid var(--toolbar-border);
+  padding: 4px 10px 4px 4px; border-radius: 10px;
+  cursor: pointer; transition: all .2s;
+
+  &:hover, &.pill-active {
+    background: var(--nav-hover);
+    border-color: rgba(0,0,0,.12);
+    .layout-root.dark & { border-color: rgba(255,255,255,.12); }
+  }
+
+  &.pill-active {
+    box-shadow: 0 0 0 2px rgba(16,185,129,.2);
+  }
+
+  .pp-avatar-sm {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: .74rem; font-weight: 800;
+    position: relative;
+
+    // Online indicator dot
+    &::after {
+      content: '';
+      position: absolute; bottom: 0; right: 0;
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #10b981; border: 1.5px solid var(--toolbar-bg);
+    }
+  }
+
+  .pp-meta {
+    display: flex; flex-direction: column; gap: 1px; min-width: 0;
+    .pp-email { font-size: .72rem; font-weight: 600; color: var(--toolbar-text);
+                max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pp-role  { font-size: .58rem; color: var(--toolbar-muted);
+                text-transform: uppercase; letter-spacing: .05em; }
+  }
+
+  .pp-chevron {
+    font-size: 16px; color: var(--icon-color) !important;
+  }
+
+  // Mobile: just the avatar, no text
+  @media(max-width:639px) {
+    padding: 4px; border-radius: 50%;
+    .pp-avatar-sm { width: 32px; height: 32px; font-size: .8rem; }
+  }
+}
+
+// ── Toolbar icon button (logout) ──────────────────────────────────────
+.toolbar-icon-btn {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: transparent; border: 1px solid var(--toolbar-border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .2s;
+  &:hover { background: rgba(244,63,94,.08); border-color: rgba(244,63,94,.3); }
+  mat-icon { font-size: 17px; color: var(--icon-color) !important; }
+  &:hover mat-icon { color: #f43f5e !important; }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// PAGE CONTENT
+// ══════════════════════════════════════════════════════════════════════
+.page-content {
+  flex: 1; overflow-y: auto; background: var(--page-bg);
+}

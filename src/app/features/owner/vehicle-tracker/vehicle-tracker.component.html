@@ -1,0 +1,91 @@
+<div class="tracker-wrapper">
+
+  <div class="tracker-header">
+    <div>
+      <h1>Live Fleet Tracker</h1>
+      <p>Real-time GPS positions · Updates every 3 seconds</p>
+    </div>
+    <div class="fleet-summary">
+      <div class="fs-pill moving">
+        <span class="fs-dot"></span>
+        {{ myFleet().length }} Moving
+      </div>
+      <div class="fs-pill parked">
+        <span class="fs-dot"></span>
+        Parked
+      </div>
+    </div>
+  </div>
+
+  <div class="tracker-body">
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sidebar-label">My Fleet · {{ myFleet().length }} vehicles</div>
+
+      <div class="loading-state" *ngIf="isLoading()">
+        <div class="mini-spinner"></div>
+        Loading vehicles...
+      </div>
+
+      <div class="vehicle-list">
+        <div class="vehicle-item"
+             *ngFor="let v of myFleet()"
+             [class.selected]="selectedId() === v.id"
+             (click)="selectVehicle(v)">
+
+          <div class="vi-dot"
+               [style.background]="v.speed > 0 ? '#10b981' : '#f43f5e'">
+          </div>
+
+          <div class="vi-body">
+            <div class="vi-plate">{{ v.plate }}</div>
+            <div class="vi-route">{{ v.route }}</div>
+          </div>
+
+          <div class="vi-right">
+            <div class="vi-speed" *ngIf="v.speed > 0" style="color:#10b981">
+              {{ v.speed }} km/h
+            </div>
+            <div class="vi-speed" *ngIf="v.speed === 0" style="color:#f43f5e">
+              Parked
+            </div>
+            <div class="vi-status" [class.moving]="v.speed > 0">
+              {{ v.speed > 0 ? 'Moving' : 'Stopped' }}
+            </div>
+          </div>
+
+        </div>
+
+        <div class="no-vehicles" *ngIf="myFleet().length === 0 && !isLoading()">
+          <mat-icon>directions_bus</mat-icon>
+          <p>No vehicles found. Contact your SACCO manager.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- MAP -->
+    <div class="map-area">
+
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        Live GPS Feed
+      </div>
+
+      <!-- FIX: curly braces escaped so Angular does not parse as ICU -->
+      <div class="ws-note">
+        <mat-icon>info_outline</mat-icon>
+        WebSocket ready — connect to /topic/locations/{{ '{' }}vehicleId{{ '}' }}
+      </div>
+
+      <div class="map-container"
+           leaflet
+           [leafletOptions]="mapOptions"
+           [leafletLayers]="mapLayers()"
+           (leafletMapReady)="onMapReady($event)">
+      </div>
+
+    </div>
+
+  </div>
+</div>

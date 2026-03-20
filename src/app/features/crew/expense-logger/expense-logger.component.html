@@ -1,0 +1,139 @@
+<div class="mobile-container">
+
+  <!-- ── HEADER BANNER ──────────────────────────────────────────────── -->
+  <div class="header-banner">
+    <div class="banner-left">
+      <h2>Log Expense</h2>
+      <p>
+        <mat-icon class="inline-icon">directions_bus</mat-icon>
+        {{ myVehicle() ? myVehicle()!.plateNumber : 'Loading vehicle...' }}
+      </p>
+    </div>
+    <div class="banner-right">
+      <span class="banner-label">Total Spent Today</span>
+      <span class="banner-amount">KSh {{ dailyTotal() | number:'1.0-0' }}</span>
+    </div>
+  </div>
+
+  <!-- ── EXPENSE BREAKDOWN PILLS ────────────────────────────────────── -->
+  <div class="breakdown-row" *ngIf="dailyTotal() > 0">
+    <div class="breakdown-pill fuel">
+      <mat-icon>local_gas_station</mat-icon>
+      <span>Fuel: KSh {{ dailyFuel() | number:'1.0-0' }}</span>
+    </div>
+    <div class="breakdown-pill other">
+      <mat-icon>receipt_long</mat-icon>
+      <span>Other: KSh {{ dailyOther() | number:'1.0-0' }}</span>
+    </div>
+  </div>
+
+  <!-- ── NO VEHICLE WARNING ─────────────────────────────────────────── -->
+  <div class="no-vehicle-banner" *ngIf="!myVehicle()">
+    <mat-icon>warning</mat-icon>
+    <p>No vehicle assigned to your account.<br>Contact your SACCO manager.</p>
+  </div>
+
+  <!-- ── LOG EXPENSE FORM ───────────────────────────────────────────── -->
+  <mat-card class="form-card" *ngIf="myVehicle()">
+    <mat-card-header>
+      <mat-card-title>Record New Expense</mat-card-title>
+      <mat-card-subtitle>Expenses sync to the Owner's profit dashboard</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="expenseForm" (ngSubmit)="onSubmit()">
+
+        <!-- Category -->
+        <mat-form-field appearance="outline" class="full-width mt-3">
+          <mat-label>Expense Category</mat-label>
+          <mat-select formControlName="category">
+            <mat-option *ngFor="let cat of expenseCategories" [value]="cat.value">
+              <div class="option-row">
+                <mat-icon [style.color]="cat.color">{{ cat.icon }}</mat-icon>
+                <span>{{ cat.label }}</span>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-icon matPrefix>category</mat-icon>
+        </mat-form-field>
+
+        <!-- Amount -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Amount (KSh)</mat-label>
+          <input matInput type="number" formControlName="amount"
+                 placeholder="0" min="10">
+          <mat-icon matPrefix>payments</mat-icon>
+          <mat-error *ngIf="expenseForm.get('amount')?.hasError('min')">
+            Minimum amount is KSh 10
+          </mat-error>
+        </mat-form-field>
+
+        <!-- Notes -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Notes (Optional)</mat-label>
+          <textarea matInput formControlName="description"
+                    rows="2"
+                    placeholder="e.g. Petrol from Shell Nakuru"></textarea>
+          <mat-icon matPrefix>notes</mat-icon>
+        </mat-form-field>
+
+        <!-- Submit -->
+        <button mat-flat-button type="submit" class="submit-btn"
+                [disabled]="isLoading() || expenseForm.invalid">
+          <mat-icon *ngIf="!isLoading()">add_circle</mat-icon>
+          {{ isLoading() ? 'Saving...' : 'Record Expense' }}
+        </button>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- ── TODAY'S EXPENSE LIST ───────────────────────────────────────── -->
+  <div class="history-section">
+    <div class="history-header">
+      <h3>Today's Expenses</h3>
+      <span class="count-badge" *ngIf="todayExpenses().length > 0">
+        {{ todayExpenses().length }}
+      </span>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" *ngIf="todayExpenses().length === 0 && !isLoading()">
+      <mat-icon>account_balance_wallet</mat-icon>
+      <p>No expenses logged yet today.</p>
+    </div>
+
+    <!-- Expense cards -->
+    <div class="expense-list">
+      <mat-card class="expense-item"
+                *ngFor="let exp of todayExpenses()">
+        <div class="expense-main">
+
+          <div class="expense-category">
+            <div class="icon-circle"
+                 [style.background]="getCategoryColor(exp.category) + '22'"
+                 [style.color]="getCategoryColor(exp.category)">
+              <mat-icon>{{ getCategoryIcon(exp.category) }}</mat-icon>
+            </div>
+            <div class="text-group">
+              <span class="title">{{ getCategoryLabel(exp.category) }}</span>
+              <span class="desc" *ngIf="exp.description">{{ exp.description }}</span>
+            </div>
+          </div>
+
+          <div class="expense-amount"
+               [style.color]="getCategoryColor(exp.category)">
+            KSh {{ exp.amount | number:'1.0-0' }}
+          </div>
+
+        </div>
+        <div class="expense-meta">
+          <mat-icon class="meta-icon">schedule</mat-icon>
+          <span>{{ exp.expenseDate | date:'shortTime' }}</span>
+          <span class="vehicle-tag">{{ exp.plateNumber }}</span>
+        </div>
+      </mat-card>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,301 @@
+<div class="onboard-wrapper">
+
+  <!-- HEADER -->
+  <div class="onboard-header">
+    <div class="onboard-header-left">
+      <div class="header-icon">
+        <mat-icon>domain_add</mat-icon>
+      </div>
+      <div>
+        <h1>Onboard New SACCO</h1>
+        <p>Register a SACCO organization and provision their manager account</p>
+      </div>
+    </div>
+    <a class="back-btn" routerLink="/admin/billing">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Dashboard
+    </a>
+  </div>
+
+  <!-- SUCCESS BANNER -->
+  <div class="alert-banner success" *ngIf="successMessage()">
+    <mat-icon>check_circle</mat-icon>
+    <span>{{ successMessage() }}</span>
+  </div>
+
+  <!-- ERROR BANNER -->
+  <div class="alert-banner error" *ngIf="errorMessage()">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage() }}</span>
+    <button class="banner-close" (click)="errorMessage.set(null)">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- BODY -->
+  <div class="onboard-body">
+
+    <!-- Left: step guide -->
+    <div class="step-guide">
+
+      <div class="sg-item sg-active">
+        <div class="sg-circle">1</div>
+        <div class="sg-text">
+          <span class="sg-label">SACCO Profile</span>
+          <span class="sg-sub">Name, tier, registration number</span>
+        </div>
+      </div>
+
+      <div class="sg-line"></div>
+
+      <div class="sg-item">
+        <div class="sg-circle">2</div>
+        <div class="sg-text">
+          <span class="sg-label">Manager Account</span>
+          <span class="sg-sub">Login credentials provisioned automatically</span>
+        </div>
+      </div>
+
+      <!-- Manager policy notice -->
+      <div class="sg-policy">
+        <mat-icon>security</mat-icon>
+        <div>
+          <strong>Single Manager Policy</strong>
+          <p>
+            Each SACCO has exactly one designated manager for clear accountability,
+            billing ownership, and compliance tracking. The manager can be reassigned
+            at any time from this dashboard.
+          </p>
+        </div>
+      </div>
+
+      <!-- Tier pricing reference -->
+      <div class="tier-ref" *ngIf="selectedTier() as t">
+        <div class="tier-ref-label">Selected Plan</div>
+        <div class="tier-ref-name" [style.color]="t.color">{{ t.label }}</div>
+        <div class="tier-ref-row">
+          <span>Monthly Fee</span>
+          <strong>KSh {{ t.fee | number }}</strong>
+        </div>
+        <div class="tier-ref-row">
+          <span>Setup Fee</span>
+          <strong>KSh {{ t.setupFee | number }}</strong>
+        </div>
+        <div class="tier-ref-row">
+          <span>Max Vehicles</span>
+          <strong>{{ t.max }}</strong>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: form -->
+    <div class="form-panel">
+
+      <form [formGroup]="onboardingForm" (ngSubmit)="onSubmit()">
+
+        <!-- ── SECTION 1: SACCO PROFILE ─────────────────────────── -->
+        <div class="form-section">
+
+          <div class="section-header">
+            <div class="section-icon">
+              <mat-icon>business</mat-icon>
+            </div>
+            <div>
+              <span class="section-label">SACCO Profile</span>
+              <span class="section-sub">Basic organization information</span>
+            </div>
+          </div>
+
+          <!-- Tier selector (card-based, not mat-select) -->
+          <div class="field-label">Subscription Tier <span class="req">*</span></div>
+          <div class="tier-cards">
+            <div class="tier-card"
+                 *ngFor="let t of tiers"
+                 [class.tier-selected]="selectedTier()?.value === t.value"
+                 [style.--tier-color]="t.color"
+                 (click)="onTierSelect(t)">
+              <div class="tc-top">
+                <span class="tc-name">{{ t.label }}</span>
+                <div class="tc-check" *ngIf="selectedTier()?.value === t.value">
+                  <mat-icon>check_circle</mat-icon>
+                </div>
+              </div>
+              <div class="tc-desc">{{ t.description }}</div>
+              <div class="tc-price">
+                <span>KSh {{ t.fee | number }}/mo</span>
+                <span class="tc-setup">+ KSh {{ t.setupFee | number }} setup</span>
+              </div>
+            </div>
+          </div>
+          <div class="field-error" *ngIf="onboardingForm.get('tier')?.invalid && onboardingForm.get('tier')?.touched">
+            Please select a subscription tier
+          </div>
+
+          <div class="form-grid two-col">
+
+            <div class="field-group">
+              <label>SACCO Name <span class="req">*</span></label>
+              <input formControlName="saccoName" type="text"
+                     placeholder="e.g. 2NK Sacco" class="field-input">
+              <div class="field-error"
+                   *ngIf="onboardingForm.get('saccoName')?.invalid && onboardingForm.get('saccoName')?.touched">
+                Required (min 3 characters)
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>NTSA Registration Number <span class="req">*</span></label>
+              <input formControlName="registrationNumber" type="text"
+                     placeholder="e.g. NTSA/SACCO/2024/001" class="field-input">
+              <div class="field-error"
+                   *ngIf="onboardingForm.get('registrationNumber')?.invalid && onboardingForm.get('registrationNumber')?.touched">
+                Required
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Official Contact Phone <span class="req">*</span></label>
+              <div class="input-with-icon">
+                <mat-icon>phone</mat-icon>
+                <input formControlName="contactPhone" type="tel"
+                       placeholder="07..." class="field-input has-icon">
+              </div>
+              <div class="field-error"
+                   *ngIf="onboardingForm.get('contactPhone')?.invalid && onboardingForm.get('contactPhone')?.touched">
+                Must be 10–12 digits
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Onboarding Setup Fee (KSh)</label>
+              <input formControlName="setupFee" type="number"
+                     placeholder="5000" class="field-input">
+              <div class="field-hint">Auto-filled from selected tier. Adjust if negotiated.</div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ── SECTION 2: MANAGER ACCOUNT ──────────────────────── -->
+        <div class="form-section">
+
+          <div class="section-header">
+            <div class="section-icon blue-icon">
+              <mat-icon>person_add</mat-icon>
+            </div>
+            <div>
+              <span class="section-label">Manager Account</span>
+              <span class="section-sub">One designated manager per SACCO</span>
+            </div>
+          </div>
+
+          <div class="manager-notice">
+            <mat-icon>info</mat-icon>
+            <span>
+              The manager will receive login credentials at the email below.
+              Default password is <strong>Default&#64;123</strong> — they must change it on first login.
+            </span>
+          </div>
+
+          <div class="form-grid two-col">
+
+            <div class="field-group">
+              <label>First Name <span class="req">*</span></label>
+              <input formControlName="managerFirstName" type="text"
+                     placeholder="John" class="field-input">
+              <div class="field-error"
+                   *ngIf="onboardingForm.get('managerFirstName')?.invalid && onboardingForm.get('managerFirstName')?.touched">
+                Required
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Last Name <span class="req">*</span></label>
+              <input formControlName="managerLastName" type="text"
+                     placeholder="Kamau" class="field-input">
+              <div class="field-error"
+                   *ngIf="onboardingForm.get('managerLastName')?.invalid && onboardingForm.get('managerLastName')?.touched">
+                Required
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Work Email <span class="req">*</span></label>
+              <div class="input-with-icon">
+                <mat-icon>email</mat-icon>
+                <input formControlName="managerEmail" type="email"
+                       placeholder="manager@sacco.co.ke" class="field-input has-icon">
+              </div>
+              <div class="field-error"
+                   *ngIf="onboardingForm.get('managerEmail')?.invalid && onboardingForm.get('managerEmail')?.touched">
+                Valid email required
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label>Personal Phone <span class="req">*</span></label>
+              <div class="input-with-icon">
+                <mat-icon>smartphone</mat-icon>
+                <input formControlName="managerPhone" type="tel"
+                       placeholder="07..." class="field-input has-icon">
+              </div>
+              <div class="field-error"
+                   *ngIf="onboardingForm.get('managerPhone')?.invalid && onboardingForm.get('managerPhone')?.touched">
+                Must be 10–12 digits
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ── SUMMARY + SUBMIT ──────────────────────────────────── -->
+        <div class="summary-row" *ngIf="selectedTier() && onboardingForm.get('saccoName')?.value">
+          <div class="summary-item">
+            <mat-icon>domain</mat-icon>
+            <div>
+              <span class="si-label">SACCO</span>
+              <span class="si-val">{{ onboardingForm.get('saccoName')?.value }}</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <mat-icon>layers</mat-icon>
+            <div>
+              <span class="si-label">Tier</span>
+              <span class="si-val">{{ selectedTier()?.label }}</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <mat-icon>directions_bus</mat-icon>
+            <div>
+              <span class="si-label">Max Vehicles</span>
+              <span class="si-val">{{ selectedTier()?.max }}</span>
+            </div>
+          </div>
+          <div class="summary-item">
+            <mat-icon>payments</mat-icon>
+            <div>
+              <span class="si-label">Monthly Revenue</span>
+              <span class="si-val green-val">KSh {{ selectedTier()?.fee | number }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <div class="form-footer">
+          <a class="cancel-btn" routerLink="/admin/billing">Cancel</a>
+          <button type="submit" class="submit-btn"
+                  [disabled]="onboardingForm.invalid || isLoading()">
+            <span class="submit-loader" *ngIf="isLoading()"></span>
+            <mat-icon *ngIf="!isLoading()">how_to_reg</mat-icon>
+            {{ isLoading() ? 'Creating SACCO Account...' : 'Complete Onboarding' }}
+          </button>
+        </div>
+
+      </form>
+    </div>
+
+  </div>
+</div>

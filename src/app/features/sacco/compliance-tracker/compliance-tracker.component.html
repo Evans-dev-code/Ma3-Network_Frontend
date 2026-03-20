@@ -1,0 +1,250 @@
+<div class="comp-wrapper">
+
+  <!-- HEADER -->
+  <div class="comp-header">
+    <div>
+      <h1>Fleet Compliance</h1>
+      <p>NTSA · Insurance · TLB license tracking across your fleet</p>
+    </div>
+    <div class="header-rate" *ngIf="totalFleet() > 0">
+      <div class="rate-ring">
+        <svg viewBox="0 0 64 64">
+          <circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
+          <circle cx="32" cy="32" r="26" fill="none"
+                  [attr.stroke]="complianceRate() >= 80 ? '#10b981' : complianceRate() >= 50 ? '#f59e0b' : '#f43f5e'"
+                  stroke-width="6" stroke-linecap="round"
+                  stroke-dasharray="163.4"
+                  [attr.stroke-dashoffset]="163.4 - (163.4 * complianceRate() / 100)"
+                  transform="rotate(-90 32 32)"/>
+        </svg>
+        <div class="rate-label">
+          <span class="rate-pct">{{ complianceRate() }}%</span>
+        </div>
+      </div>
+      <div class="rate-text">
+        <span class="rt-main">Compliant</span>
+        <span class="rt-sub">{{ compliantCount() }}/{{ totalFleet() }} vehicles</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+
+    <div class="kpi-card" [class.active]="activeFilter() === 'all'"
+         (click)="setFilter('all')">
+      <div class="kpi-top">
+        <span class="kpi-label">Total Fleet</span>
+        <div class="kpi-icon blue">
+          <mat-icon>directions_bus</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-val">{{ totalFleet() }}</div>
+      <div class="kpi-sub">All registered vehicles</div>
+      <div class="kpi-bar blue-bar"></div>
+    </div>
+
+    <div class="kpi-card good">
+      <div class="kpi-top">
+        <span class="kpi-label">Fully Compliant</span>
+        <div class="kpi-icon green">
+          <mat-icon>verified</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-val">{{ compliantCount() }}</div>
+      <div class="kpi-sub">All documents valid</div>
+      <div class="kpi-bar green-bar"></div>
+    </div>
+
+    <div class="kpi-card" [class.active]="activeFilter() === 'expiring'"
+         (click)="setFilter('expiring')">
+      <div class="kpi-top">
+        <span class="kpi-label">Expiring Soon</span>
+        <div class="kpi-icon amber">
+          <mat-icon>schedule</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-val amber-val">{{ expiringCount() }}</div>
+      <div class="kpi-sub">Within 30 days</div>
+      <div class="kpi-bar amber-bar"></div>
+    </div>
+
+    <div class="kpi-card" [class.active]="activeFilter() === 'expired'"
+         (click)="setFilter('expired')">
+      <div class="kpi-top">
+        <span class="kpi-label">Expired</span>
+        <div class="kpi-icon red">
+          <mat-icon>error_outline</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-val red-val">{{ expiredCount() }}</div>
+      <div class="kpi-sub">Immediate action needed</div>
+      <div class="kpi-bar red-bar"></div>
+    </div>
+
+  </div>
+
+  <!-- URGENT BANNER -->
+  <div class="urgent-banner" *ngIf="expiredCount() > 0">
+    <mat-icon>warning</mat-icon>
+    <span>
+      <strong>{{ expiredCount() }} vehicle{{ expiredCount() > 1 ? 's' : '' }}</strong>
+      {{ expiredCount() > 1 ? 'have' : 'has' }} expired compliance documents.
+      These vehicles should not be on the road until renewed.
+    </span>
+    <button class="banner-btn" (click)="setFilter('expired')">View All</button>
+  </div>
+
+  <!-- SEARCH + FILTER BAR -->
+  <div class="toolbar-row">
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input type="text" placeholder="Search plate, owner or route..."
+             (input)="onSearch($event)">
+    </div>
+    <div class="filter-tabs">
+      <button [class.active]="activeFilter() === 'all'"    (click)="setFilter('all')">All</button>
+      <button [class.active]="activeFilter() === 'expiring'" (click)="setFilter('expiring')">
+        Expiring <span class="tab-badge amber" *ngIf="expiringCount()>0">{{ expiringCount() }}</span>
+      </button>
+      <button [class.active]="activeFilter() === 'expired'" (click)="setFilter('expired')">
+        Expired <span class="tab-badge red" *ngIf="expiredCount()>0">{{ expiredCount() }}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div class="loading-state" *ngIf="isLoading()">
+    <div class="spinner"></div>
+    <span>Loading fleet compliance data...</span>
+  </div>
+
+  <!-- EMPTY -->
+  <div class="empty-state" *ngIf="!isLoading() && filteredFleet().length === 0">
+    <mat-icon>verified</mat-icon>
+    <h3>No vehicles found</h3>
+    <p *ngIf="activeFilter() !== 'all'">
+      No vehicles match the selected filter. <button class="link-btn" (click)="setFilter('all')">Show all</button>
+    </p>
+    <p *ngIf="activeFilter() === 'all'">No vehicles registered yet.</p>
+  </div>
+
+  <!-- VEHICLE CARDS (mobile-first grid) -->
+  <div class="vehicle-grid" *ngIf="!isLoading() && filteredFleet().length > 0">
+
+    <div class="vehicle-card"
+         *ngFor="let v of filteredFleet()"
+         [class.card-expired]="getWorstStatus(v) === 'expired'"
+         [class.card-expiring]="getWorstStatus(v) === 'expiring'">
+
+      <!-- Card Header -->
+      <div class="vc-header">
+        <div class="vc-plate-block">
+          <span class="vc-plate">{{ v.plateNumber }}</span>
+          <span class="vc-route">{{ v.route }}</span>
+        </div>
+        <span class="vc-status-chip"
+              [class.chip-valid]="getWorstStatus(v) === 'valid'"
+              [class.chip-expiring]="getWorstStatus(v) === 'expiring'"
+              [class.chip-expired]="getWorstStatus(v) === 'expired'">
+          {{ getWorstStatus(v) === 'valid' ? '✓ Compliant'
+           : getWorstStatus(v) === 'expiring' ? '⚠ Expiring'
+           : '✕ Expired' }}
+        </span>
+      </div>
+
+      <!-- Owner -->
+      <div class="vc-owner">
+        <mat-icon>person</mat-icon>
+        <span>{{ v.ownerName }}</span>
+      </div>
+
+      <!-- Compliance Rows -->
+      <div class="vc-docs">
+
+        <div class="doc-row">
+          <div class="doc-left">
+            <mat-icon class="doc-icon">fact_check</mat-icon>
+            <span class="doc-name">NTSA Inspection</span>
+          </div>
+          <div class="doc-right">
+            <span class="doc-date"
+                  [class.date-valid]="getStatus(v.ntsaExpiry) === 'valid'"
+                  [class.date-expiring]="getStatus(v.ntsaExpiry) === 'expiring'"
+                  [class.date-expired]="getStatus(v.ntsaExpiry) === 'expired'">
+              {{ v.ntsaExpiry | date:'d MMM yyyy' }}
+            </span>
+            <span class="doc-days"
+                  *ngIf="getStatus(v.ntsaExpiry) !== 'expired'"
+                  [class.days-expiring]="getStatus(v.ntsaExpiry) === 'expiring'">
+              {{ getDaysLeft(v.ntsaExpiry) }}d left
+            </span>
+            <span class="doc-days days-expired" *ngIf="getStatus(v.ntsaExpiry) === 'expired'">
+              Expired
+            </span>
+          </div>
+        </div>
+
+        <div class="doc-row">
+          <div class="doc-left">
+            <mat-icon class="doc-icon">shield</mat-icon>
+            <span class="doc-name">Insurance</span>
+          </div>
+          <div class="doc-right">
+            <span class="doc-date"
+                  [class.date-valid]="getStatus(v.insuranceExpiry) === 'valid'"
+                  [class.date-expiring]="getStatus(v.insuranceExpiry) === 'expiring'"
+                  [class.date-expired]="getStatus(v.insuranceExpiry) === 'expired'">
+              {{ v.insuranceExpiry | date:'d MMM yyyy' }}
+            </span>
+            <span class="doc-days"
+                  *ngIf="getStatus(v.insuranceExpiry) !== 'expired'"
+                  [class.days-expiring]="getStatus(v.insuranceExpiry) === 'expiring'">
+              {{ getDaysLeft(v.insuranceExpiry) }}d left
+            </span>
+            <span class="doc-days days-expired" *ngIf="getStatus(v.insuranceExpiry) === 'expired'">
+              Expired
+            </span>
+          </div>
+        </div>
+
+        <div class="doc-row">
+          <div class="doc-left">
+            <mat-icon class="doc-icon">assignment</mat-icon>
+            <span class="doc-name">TLB License</span>
+          </div>
+          <div class="doc-right">
+            <span class="doc-date"
+                  [class.date-valid]="getStatus(v.tlbExpiry) === 'valid'"
+                  [class.date-expiring]="getStatus(v.tlbExpiry) === 'expiring'"
+                  [class.date-expired]="getStatus(v.tlbExpiry) === 'expired'">
+              {{ v.tlbExpiry | date:'d MMM yyyy' }}
+            </span>
+            <span class="doc-days"
+                  *ngIf="getStatus(v.tlbExpiry) !== 'expired'"
+                  [class.days-expiring]="getStatus(v.tlbExpiry) === 'expiring'">
+              {{ getDaysLeft(v.tlbExpiry) }}d left
+            </span>
+            <span class="doc-days days-expired" *ngIf="getStatus(v.tlbExpiry) === 'expired'">
+              Expired
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Footer -->
+      <div class="vc-footer">
+        <button class="remind-btn" (click)="sendReminder(v)"
+                *ngIf="getWorstStatus(v) !== 'valid'">
+          <mat-icon>notifications_active</mat-icon>
+          Notify Owner
+        </button>
+        <div class="vc-spacer"></div>
+        <span class="vc-id">ID: {{ v.id }}</span>
+      </div>
+
+    </div>
+  </div>
+
+</div>

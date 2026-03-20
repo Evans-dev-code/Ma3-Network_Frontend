@@ -1,0 +1,457 @@
+<div class="reg-wrapper">
+
+  <!-- HEADER -->
+  <div class="reg-header">
+    <div class="reg-header-left">
+      <div class="reg-icon"><mat-icon>directions_bus</mat-icon></div>
+      <div>
+        <h1>Register New Vehicle</h1>
+        <p>Add a matatu to your fleet and provision the owner and crew accounts</p>
+      </div>
+    </div>
+    <a class="back-btn" routerLink="/sacco/dispatch">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Dispatch
+    </a>
+  </div>
+
+  <!-- SUCCESS BANNER -->
+  <div class="alert-banner success" *ngIf="successMessage()">
+    <mat-icon>check_circle</mat-icon>
+    <span>{{ successMessage() }}</span>
+  </div>
+
+  <!-- ERROR BANNER -->
+  <div class="alert-banner error" *ngIf="errorMessage()">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ errorMessage() }}</span>
+    <button class="banner-close" (click)="errorMessage.set(null)">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- BODY -->
+  <div class="reg-body">
+
+    <!-- Left: Step Guide -->
+    <div class="step-guide">
+      <div class="sg-item"
+           [class.sg-active]="stepIndex() === 0"
+           [class.sg-done]="stepIndex() > 0">
+        <div class="sg-circle">
+          <mat-icon *ngIf="stepIndex() > 0">check</mat-icon>
+          <span *ngIf="stepIndex() === 0">1</span>
+        </div>
+        <div class="sg-text">
+          <span class="sg-label">Vehicle Details</span>
+          <span class="sg-sub">Plate, route, capacity &amp; compliance dates</span>
+        </div>
+      </div>
+
+      <div class="sg-line"></div>
+
+      <div class="sg-item"
+           [class.sg-active]="stepIndex() === 1"
+           [class.sg-done]="stepIndex() > 1">
+        <div class="sg-circle">
+          <mat-icon *ngIf="stepIndex() > 1">check</mat-icon>
+          <span *ngIf="stepIndex() <= 1">2</span>
+        </div>
+        <div class="sg-text">
+          <span class="sg-label">Owner Account</span>
+          <span class="sg-sub">Link by email to an existing owner account</span>
+        </div>
+      </div>
+
+      <div class="sg-line"></div>
+
+      <div class="sg-item" [class.sg-active]="stepIndex() === 2">
+        <div class="sg-circle"><span>3</span></div>
+        <div class="sg-text">
+          <span class="sg-label">Crew Accounts</span>
+          <span class="sg-sub">Driver required · conductor optional</span>
+        </div>
+      </div>
+
+      <div class="sg-info">
+        <mat-icon>info</mat-icon>
+        <p>
+          The owner must already have a registered account.
+          Crew accounts will be created with the credentials you enter.
+          Conductor can be added later from the dispatch panel.
+        </p>
+      </div>
+    </div>
+
+    <!-- Right: Stepper -->
+    <div class="form-panel">
+      <mat-stepper orientation="vertical" [linear]="true" #stepper
+                   class="custom-stepper"
+                   (selectionChange)="onStepChange($event.selectedIndex)">
+
+        <!-- ══ STEP 1: VEHICLE ══════════════════════════════════════ -->
+        <mat-step [stepControl]="vehicleForm">
+          <ng-template matStepLabel>Vehicle &amp; Compliance Details</ng-template>
+
+          <form [formGroup]="vehicleForm" class="step-form">
+
+            <div class="field-section-label">Vehicle Info</div>
+
+            <div class="form-grid">
+
+              <!-- Plate Number -->
+              <mat-form-field appearance="outline">
+                <mat-label>Plate Number</mat-label>
+                <mat-icon matPrefix>pin</mat-icon>
+                <input matInput formControlName="plateNumber"
+                       placeholder="e.g. KDK 123J"
+                       oninput="this.value = this.value.toUpperCase()">
+                <mat-hint>Format: KDK 123J</mat-hint>
+                <mat-error *ngIf="vehicleForm.get('plateNumber')?.hasError('required')">
+                  Required
+                </mat-error>
+                <mat-error *ngIf="vehicleForm.get('plateNumber')?.hasError('pattern')">
+                  Invalid — use format KDK 123J
+                </mat-error>
+              </mat-form-field>
+
+              <!-- Route — dropdown from SACCO routes API -->
+              <div class="route-field-wrap">
+                <mat-form-field appearance="outline" class="route-select">
+                  <mat-label>Route</mat-label>
+                  <mat-icon matPrefix>route</mat-icon>
+                  <mat-select formControlName="route">
+                    <mat-option disabled *ngIf="routesLoading()">
+                      Loading routes...
+                    </mat-option>
+                    <mat-option *ngFor="let r of saccoRoutes()" [value]="r.name">
+                      {{ r.display }}
+                    </mat-option>
+                    <mat-option disabled
+                                *ngIf="saccoRoutes().length === 0 && !routesLoading()">
+                      No routes yet — add one below
+                    </mat-option>
+                  </mat-select>
+                  <mat-error *ngIf="vehicleForm.get('route')?.hasError('required')">
+                    Required
+                  </mat-error>
+                </mat-form-field>
+
+                <!-- Add route toggle -->
+                <button type="button" class="add-route-btn"
+                        (click)="showAddRoute.set(!showAddRoute())">
+                  <mat-icon>{{ showAddRoute() ? 'remove' : 'add' }}</mat-icon>
+                  {{ showAddRoute() ? 'Cancel' : 'Add Route' }}
+                </button>
+              </div>
+
+              <!-- Capacity -->
+              <mat-form-field appearance="outline">
+                <mat-label>Passenger Capacity</mat-label>
+                <mat-icon matPrefix>groups</mat-icon>
+                <input matInput type="number" formControlName="capacity"
+                       placeholder="e.g. 14">
+                <mat-hint>Typical 14–33 seats</mat-hint>
+                <mat-error *ngIf="vehicleForm.get('capacity')?.hasError('required')">
+                  Required
+                </mat-error>
+              </mat-form-field>
+
+            </div>
+
+            <!-- Inline add-route form -->
+            <div class="add-route-form" *ngIf="showAddRoute()">
+              <div class="arf-label">
+                <mat-icon>add_road</mat-icon>
+                New Route
+              </div>
+              <form [formGroup]="addRouteForm" class="arf-grid">
+                <mat-form-field appearance="outline">
+                  <mat-label>Route Name</mat-label>
+                  <input matInput formControlName="name" placeholder="e.g. Route 23">
+                  <mat-error>Required</mat-error>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>Start Point</mat-label>
+                  <input matInput formControlName="startPoint" placeholder="e.g. CBD">
+                  <mat-error>Required</mat-error>
+                </mat-form-field>
+                <mat-form-field appearance="outline">
+                  <mat-label>End Point</mat-label>
+                  <input matInput formControlName="endPoint" placeholder="e.g. Westlands">
+                  <mat-error>Required</mat-error>
+                </mat-form-field>
+                <button type="button" class="arf-save-btn" (click)="addRoute()">
+                  <mat-icon>check</mat-icon>
+                  Save Route
+                </button>
+              </form>
+            </div>
+
+            <div class="field-section-label mt-16">Compliance Expiry Dates</div>
+
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>NTSA Inspection Expiry</mat-label>
+                <mat-icon matPrefix>fact_check</mat-icon>
+                <input matInput [matDatepicker]="ntsaPicker"
+                       formControlName="ntsaExpiry" [min]="today">
+                <mat-datepicker-toggle matIconSuffix [for]="ntsaPicker">
+                </mat-datepicker-toggle>
+                <mat-datepicker #ntsaPicker></mat-datepicker>
+                <mat-error>Required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>Insurance Expiry</mat-label>
+                <mat-icon matPrefix>shield</mat-icon>
+                <input matInput [matDatepicker]="insPicker"
+                       formControlName="insuranceExpiry" [min]="today">
+                <mat-datepicker-toggle matIconSuffix [for]="insPicker">
+                </mat-datepicker-toggle>
+                <mat-datepicker #insPicker></mat-datepicker>
+                <mat-error>Required</mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline">
+                <mat-label>TLB License Expiry</mat-label>
+                <mat-icon matPrefix>assignment</mat-icon>
+                <input matInput [matDatepicker]="tlbPicker"
+                       formControlName="tlbExpiry" [min]="today">
+                <mat-datepicker-toggle matIconSuffix [for]="tlbPicker">
+                </mat-datepicker-toggle>
+                <mat-datepicker #tlbPicker></mat-datepicker>
+                <mat-error>Required</mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="step-actions">
+              <button class="step-next-btn" matStepperNext
+                      [disabled]="vehicleForm.invalid">
+                Continue to Owner Details
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+
+          </form>
+        </mat-step>
+
+        <!-- ══ STEP 2: OWNER ════════════════════════════════════════ -->
+        <mat-step [stepControl]="ownerForm">
+          <ng-template matStepLabel>Matatu Owner Account</ng-template>
+
+          <form [formGroup]="ownerForm" class="step-form">
+
+            <div class="owner-notice">
+              <mat-icon>info</mat-icon>
+              <span>
+                The owner must already have a registered Ma3 Network account.
+                Enter their email to link them to this vehicle as a
+                <strong>Wealth Protector</strong>.
+              </span>
+            </div>
+
+            <div class="form-grid" style="grid-template-columns: 1fr">
+              <mat-form-field appearance="outline">
+                <mat-label>Owner Email Address</mat-label>
+                <mat-icon matPrefix>email</mat-icon>
+                <input matInput type="email" formControlName="ownerEmail"
+                       placeholder="owner&#64;example.com">
+                <mat-hint>Must match an existing Ma3 Network account</mat-hint>
+                <mat-error *ngIf="ownerForm.get('ownerEmail')?.hasError('required')">
+                  Required
+                </mat-error>
+                <mat-error *ngIf="ownerForm.get('ownerEmail')?.hasError('email')">
+                  Enter a valid email address
+                </mat-error>
+              </mat-form-field>
+            </div>
+
+            <div class="step-actions">
+              <button class="step-back-btn" matStepperPrevious>
+                <mat-icon>arrow_back</mat-icon> Back
+              </button>
+              <button class="step-next-btn" matStepperNext
+                      [disabled]="ownerForm.invalid">
+                Continue to Crew Details
+                <mat-icon>arrow_forward</mat-icon>
+              </button>
+            </div>
+
+          </form>
+        </mat-step>
+
+        <!-- ══ STEP 3: CREW ═════════════════════════════════════════ -->
+        <mat-step [stepControl]="crewForm">
+          <ng-template matStepLabel>Driver &amp; Conductor Accounts</ng-template>
+
+          <form [formGroup]="crewForm" class="step-form">
+
+            <div class="inline-error" *ngIf="crewForm.hasError('sameEmail')">
+              <mat-icon>warning</mat-icon>
+              Driver and conductor cannot share the same email address.
+            </div>
+
+            <!-- Driver -->
+            <div class="crew-section-header">
+              <div class="crew-section-icon driver">
+                <mat-icon>directions_car</mat-icon>
+              </div>
+              <div>
+                <span class="cs-label">Driver <span class="cs-required">Required</span></span>
+                <span class="cs-sub">Logs in as CREW · starts trips and logs expenses</span>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="driverFirstName">
+                <mat-error>Required</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="driverLastName">
+                <mat-error>Required</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="driverEmail">
+                <mat-error *ngIf="crewForm.get('driverEmail')?.hasError('required')">Required</mat-error>
+                <mat-error *ngIf="crewForm.get('driverEmail')?.hasError('email')">Invalid email</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Phone</mat-label>
+                <input matInput formControlName="driverPhone" placeholder="07...">
+                <mat-error *ngIf="crewForm.get('driverPhone')?.hasError('required')">Required</mat-error>
+                <mat-error *ngIf="crewForm.get('driverPhone')?.hasError('pattern')">Must be 10–12 digits</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline" style="grid-column: 1 / -1">
+                <mat-label>Login Password</mat-label>
+                <mat-icon matPrefix>lock</mat-icon>
+                <input matInput type="password" formControlName="driverPassword"
+                       placeholder="Minimum 6 characters">
+                <mat-hint>Driver will use this to log in</mat-hint>
+                <mat-error *ngIf="crewForm.get('driverPassword')?.hasError('required')">Required</mat-error>
+                <mat-error *ngIf="crewForm.get('driverPassword')?.hasError('minlength')">Minimum 6 characters</mat-error>
+              </mat-form-field>
+            </div>
+
+            <!-- Conductor -->
+            <div class="crew-section-header mt-16">
+              <div class="crew-section-icon conductor">
+                <mat-icon>person</mat-icon>
+              </div>
+              <div>
+                <span class="cs-label">
+                  Conductor <span class="cs-optional">Optional</span>
+                </span>
+                <span class="cs-sub">
+                  Leave blank to register without a conductor —
+                  assign one later from the dispatch panel
+                </span>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <mat-form-field appearance="outline">
+                <mat-label>First Name</mat-label>
+                <input matInput formControlName="conductorFirstName" placeholder="Optional">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Last Name</mat-label>
+                <input matInput formControlName="conductorLastName" placeholder="Optional">
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Email</mat-label>
+                <input matInput type="email" formControlName="conductorEmail" placeholder="Optional">
+                <mat-error *ngIf="crewForm.get('conductorEmail')?.hasError('email')">Invalid email</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline">
+                <mat-label>Phone</mat-label>
+                <input matInput formControlName="conductorPhone" placeholder="Optional">
+                <mat-error *ngIf="crewForm.get('conductorPhone')?.hasError('pattern')">Must be 10–12 digits</mat-error>
+              </mat-form-field>
+              <mat-form-field appearance="outline" style="grid-column: 1 / -1"
+                              *ngIf="conductorEmailFilled">
+                <mat-label>Login Password</mat-label>
+                <mat-icon matPrefix>lock</mat-icon>
+                <input matInput type="password" formControlName="conductorPassword"
+                       placeholder="Minimum 6 characters">
+                <mat-hint>Conductor will use this to log in</mat-hint>
+              </mat-form-field>
+            </div>
+
+            <!-- Summary -->
+            <div class="registration-summary"
+                 *ngIf="vehicleForm.valid && ownerForm.valid">
+              <div class="rs-label">Registration Summary</div>
+              <div class="rs-grid">
+                <div class="rs-item">
+                  <mat-icon>directions_bus</mat-icon>
+                  <div>
+                    <span class="rs-key">Vehicle</span>
+                    <span class="rs-val">{{ vehicleForm.value.plateNumber | uppercase }}</span>
+                  </div>
+                </div>
+                <div class="rs-item">
+                  <mat-icon>route</mat-icon>
+                  <div>
+                    <span class="rs-key">Route</span>
+                    <span class="rs-val">{{ selectedRouteDisplay }}</span>
+                  </div>
+                </div>
+                <div class="rs-item">
+                  <mat-icon>email</mat-icon>
+                  <div>
+                    <span class="rs-key">Owner</span>
+                    <span class="rs-val">{{ ownerForm.value.ownerEmail }}</span>
+                  </div>
+                </div>
+                <div class="rs-item">
+                  <mat-icon>groups</mat-icon>
+                  <div>
+                    <span class="rs-key">Capacity</span>
+                    <span class="rs-val">{{ vehicleForm.value.capacity }} passengers</span>
+                  </div>
+                </div>
+                <div class="rs-item" *ngIf="conductorEmailFilled">
+                  <mat-icon>person</mat-icon>
+                  <div>
+                    <span class="rs-key">Conductor</span>
+                    <span class="rs-val">{{ crewForm.value.conductorEmail }}</span>
+                  </div>
+                </div>
+                <div class="rs-item" *ngIf="!conductorEmailFilled">
+                  <mat-icon>person_off</mat-icon>
+                  <div>
+                    <span class="rs-key">Conductor</span>
+                    <span class="rs-val" style="color:#94a3b8">None — assign later</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="step-actions">
+              <button class="step-back-btn" matStepperPrevious>
+                <mat-icon>arrow_back</mat-icon> Back
+              </button>
+              <button class="submit-btn"
+                      (click)="onSubmit()"
+                      [disabled]="isLoading()
+                               || crewForm.hasError('sameEmail')
+                               || crewForm.invalid">
+                <span class="submit-loader" *ngIf="isLoading()"></span>
+                <mat-icon *ngIf="!isLoading()">check_circle</mat-icon>
+                {{ isLoading() ? 'Registering...' : 'Complete Registration' }}
+              </button>
+            </div>
+
+          </form>
+        </mat-step>
+
+      </mat-stepper>
+    </div>
+  </div>
+
+</div>

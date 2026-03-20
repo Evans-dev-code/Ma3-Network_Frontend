@@ -1,0 +1,260 @@
+<div class="reg-page">
+
+  <!-- ══ LEFT STRIP (decorative, same as login) ════════════════════ -->
+  <div class="left-strip">
+    <div class="ls-mesh">
+      <div class="ls-circle lc-1"></div>
+      <div class="ls-circle lc-2"></div>
+    </div>
+    <div class="stripe-overlay"></div>
+    <div class="road-lines">
+      <div class="rl rl-1"></div>
+      <div class="rl rl-2"></div>
+      <div class="rl rl-3"></div>
+    </div>
+
+    <div class="ls-brand">
+      <div class="ls-emblem">
+        <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="56" height="56" rx="14" fill="rgba(16,185,129,0.18)"/>
+          <rect x="6" y="18" width="44" height="22" rx="5" fill="#10b981"/>
+          <rect x="9" y="21" width="13" height="9" rx="2" fill="rgba(255,255,255,0.92)"/>
+          <rect x="25" y="21" width="7" height="7" rx="1.5" fill="rgba(255,255,255,0.8)"/>
+          <rect x="35" y="21" width="7" height="7" rx="1.5" fill="rgba(255,255,255,0.8)"/>
+          <rect x="25" y="30" width="7" height="9" rx="1" fill="rgba(255,255,255,0.28)"/>
+          <rect x="6" y="24" width="3" height="5" rx="1" fill="#fef08a"/>
+          <circle cx="15" cy="42" r="4" fill="#0f172a"/>
+          <circle cx="15" cy="42" r="1.8" fill="#334155"/>
+          <circle cx="41" cy="42" r="4" fill="#0f172a"/>
+          <circle cx="41" cy="42" r="1.8" fill="#334155"/>
+          <rect x="8" y="15" width="40" height="4" rx="2" fill="#059669"/>
+        </svg>
+      </div>
+      <div>
+        <span class="ls-name">Ma3 Network</span>
+        <span class="ls-tag">Kenya's Smart Fleet Platform</span>
+      </div>
+    </div>
+
+    <div class="ls-hero">
+      <div class="ls-eyebrow">
+        <span class="e-dot"></span>
+        Join the platform
+      </div>
+      <h2 class="ls-h">
+        Start managing<br>
+        your fleet<br>
+        <span class="h-green">smarter.</span>
+      </h2>
+      <p class="ls-p">
+        Create your account to access fleet analytics,
+        GPS dispatch, compliance tracking and crew management.
+      </p>
+    </div>
+
+    <div class="ls-steps">
+      <div class="ls-step-label">How it works</div>
+      <div class="ls-step-list">
+        <div class="ls-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <span class="step-title">Create your account</span>
+            <span class="step-desc">Fill in your details and verify your email</span>
+          </div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="ls-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <span class="step-title">Get assigned to a SACCO</span>
+            <span class="step-desc">Your SACCO manager links you to your fleet</span>
+          </div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="ls-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <span class="step-title">Access your dashboard</span>
+            <span class="step-desc">Analytics, trips, compliance — all live</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ls-contact">
+      <div class="lsc-label">Already a SACCO?</div>
+      <a href="tel:+254715431785" class="lsc-link">
+        <mat-icon>phone</mat-icon>
+        +254 715 431 785
+      </a>
+    </div>
+
+  </div>
+
+  <!-- ══ RIGHT FORM PANEL ══════════════════════════════════════════ -->
+  <div class="right-panel">
+    <div class="form-wrap">
+
+      <!-- Mobile brand -->
+      <div class="mobile-brand">
+        <div class="mb-bus"><mat-icon>directions_bus</mat-icon></div>
+        <span>Ma3 Network</span>
+      </div>
+
+      <!-- Progress bar -->
+      <div class="reg-progress">
+        <div class="rp-step done">
+          <div class="rps-dot"><mat-icon>person</mat-icon></div>
+          <span>Personal</span>
+        </div>
+        <div class="rp-line"></div>
+        <div class="rps-dot rps-active"><mat-icon>contact_mail</mat-icon></div>
+        <div class="rp-line rpl-inactive"></div>
+        <div class="rps-dot rps-inactive"><mat-icon>lock</mat-icon></div>
+      </div>
+
+      <div class="form-titles">
+        <h2>Create Your Account</h2>
+        <p>Join Kenya's smartest matatu fleet platform</p>
+      </div>
+
+      <!-- Error -->
+      <div class="err-banner" *ngIf="errorMessage()">
+        <mat-icon>error_outline</mat-icon>
+        <span>{{ errorMessage() }}</span>
+        <button class="err-close" (click)="errorMessage.set(null)">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+
+        <!-- Name row -->
+        <div class="name-row">
+          <div class="field-group">
+            <label>First Name <span class="req">*</span></label>
+            <div class="inp-wrap"
+                 [class.inp-err]="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched">
+              <mat-icon>person_outline</mat-icon>
+              <input type="text" formControlName="firstName"
+                     placeholder="John" autocomplete="given-name">
+            </div>
+            <span class="f-err"
+                  *ngIf="registerForm.get('firstName')?.invalid && registerForm.get('firstName')?.touched">
+              Required
+            </span>
+          </div>
+          <div class="field-group">
+            <label>Last Name <span class="req">*</span></label>
+            <div class="inp-wrap"
+                 [class.inp-err]="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched">
+              <mat-icon>person_outline</mat-icon>
+              <input type="text" formControlName="lastName"
+                     placeholder="Kamau" autocomplete="family-name">
+            </div>
+            <span class="f-err"
+                  *ngIf="registerForm.get('lastName')?.invalid && registerForm.get('lastName')?.touched">
+              Required
+            </span>
+          </div>
+        </div>
+
+        <!-- Phone -->
+        <div class="field-group">
+          <label>Phone Number <span class="req">*</span></label>
+          <div class="inp-wrap"
+               [class.inp-err]="registerForm.get('phoneNumber')?.invalid && registerForm.get('phoneNumber')?.touched">
+            <mat-icon>phone</mat-icon>
+            <input type="tel" formControlName="phoneNumber"
+                   placeholder="0712 345 678" autocomplete="tel">
+          </div>
+          <span class="f-err"
+                *ngIf="registerForm.get('phoneNumber')?.invalid && registerForm.get('phoneNumber')?.touched">
+            {{ registerForm.get('phoneNumber')?.hasError('required') ? 'Phone number required' : 'Enter 10–12 digit number' }}
+          </span>
+        </div>
+
+        <!-- Email -->
+        <div class="field-group">
+          <label>Email Address <span class="req">*</span></label>
+          <div class="inp-wrap"
+               [class.inp-err]="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+            <mat-icon>email</mat-icon>
+            <input type="email" formControlName="email"
+                   placeholder="you&#64;example.com" autocomplete="email">
+          </div>
+          <span class="f-err"
+                *ngIf="registerForm.get('email')?.invalid && registerForm.get('email')?.touched">
+            {{ registerForm.get('email')?.hasError('required') ? 'Email is required' : 'Enter a valid email address' }}
+          </span>
+        </div>
+
+        <!-- Password -->
+        <div class="field-group">
+          <label>Password <span class="req">*</span></label>
+          <div class="inp-wrap"
+               [class.inp-err]="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+            <mat-icon>lock</mat-icon>
+            <input [type]="hidePassword() ? 'password' : 'text'"
+                   formControlName="password"
+                   placeholder="Minimum 6 characters"
+                   autocomplete="new-password">
+            <button type="button" class="pw-toggle" (click)="togglePassword($event)">
+              <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </div>
+          <span class="f-err"
+                *ngIf="registerForm.get('password')?.invalid && registerForm.get('password')?.touched">
+            {{ registerForm.get('password')?.hasError('required') ? 'Password is required' : 'Minimum 6 characters' }}
+          </span>
+        </div>
+
+        <!-- Password strength hint -->
+        <div class="pw-hint" *ngIf="registerForm.get('password')?.value?.length > 0">
+          <div class="pwh-bar">
+            <div class="pwh-fill"
+                 [style.width.%]="Math.min((registerForm.get('password')?.value?.length / 12) * 100, 100)"
+                 [style.background]="registerForm.get('password')?.value?.length >= 10 ? '#10b981' :
+                                     registerForm.get('password')?.value?.length >= 6  ? '#f59e0b' : '#f43f5e'">
+            </div>
+          </div>
+          <span [style.color]="registerForm.get('password')?.value?.length >= 10 ? '#10b981' :
+                               registerForm.get('password')?.value?.length >= 6  ? '#f59e0b' : '#f43f5e'">
+            {{ registerForm.get('password')?.value?.length >= 10 ? 'Strong' :
+               registerForm.get('password')?.value?.length >= 6  ? 'Good' : 'Too short' }}
+          </span>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="submit-btn"
+                [disabled]="registerForm.invalid || isLoading()">
+          <span class="sb-loader" *ngIf="isLoading()"></span>
+          <mat-icon *ngIf="!isLoading()">person_add</mat-icon>
+          {{ isLoading() ? 'Creating account...' : 'Create Account' }}
+        </button>
+
+        <!-- Terms note -->
+        <p class="terms-note">
+          By creating an account you agree to the Ma3 Network
+          <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+        </p>
+
+      </form>
+
+      <!-- Sign in link -->
+      <div class="sign-in-row">
+        <span>Already have an account?</span>
+        <a routerLink="/login" class="sign-in-link">
+          <mat-icon>login</mat-icon>
+          Sign In
+        </a>
+      </div>
+
+      <p class="foot-note">
+        Ma3 Network &copy; {{ currentYear }} · Kenya Matatu Fleet Intelligence
+      </p>
+
+    </div>
+  </div>
+
+</div>
