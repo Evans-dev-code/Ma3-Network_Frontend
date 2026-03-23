@@ -23,6 +23,13 @@ export const routes: Routes = [
       import('./features/auth/forgot-password/forgot-password.component')
         .then(m => m.ForgotPasswordComponent)
   },
+  {
+    path: 'setup-password',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password.component')
+        .then(m => m.ForgotPasswordComponent)
+  },
+
 
   // ── Protected layout shell ───────────────────────────────────────
   // ProfilePanelComponent is embedded inside MainLayoutComponent —
