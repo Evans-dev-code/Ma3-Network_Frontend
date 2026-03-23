@@ -27,6 +27,24 @@ export class AuthService {
     );
   }
 
+  requestPasswordSetup(email: string): Observable<any> {
+    // The backend expects email as a query parameter (@RequestParam)
+    return this.http.post(
+      `${this.apiUrl}/setup-password-request?email=${encodeURIComponent(email)}`, 
+      {}, 
+      { responseType: 'text' as 'json' }
+    );
+  }
+
+  setupPassword(token: string, newPassword: string): Observable<any> {
+    // The backend expects token and newPassword as query parameters
+    return this.http.post(
+      `${this.apiUrl}/reset-password?token=${encodeURIComponent(token)}&newPassword=${encodeURIComponent(newPassword)}`, 
+      {}, 
+      { responseType: 'text' as 'json' }
+    );
+  }
+
   logout(): void {
     localStorage.removeItem('jwt_token');
     this.currentUser.set(null);

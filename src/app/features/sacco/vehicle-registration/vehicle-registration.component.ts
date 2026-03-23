@@ -79,17 +79,16 @@ export class VehicleRegistrationComponent implements OnInit {
   });
 
   // ── Step 3: Crew ──────────────────────────────────────────────────
+  // Removed passwords, backend now handles token generation
   crewForm: FormGroup = this.fb.group({
     driverFirstName: ['', Validators.required],
     driverLastName:  ['', Validators.required],
     driverEmail:     ['', [Validators.required, Validators.email]],
     driverPhone:     ['', [Validators.required, Validators.pattern('^[0-9]{10,12}$')]],
-    driverPassword:  ['', [Validators.required, Validators.minLength(6)]],
     conductorFirstName: [''],
     conductorLastName:  [''],
     conductorEmail:     ['', Validators.email],
-    conductorPhone:     ['', Validators.pattern('^$|^[0-9]{10,12}$')],
-    conductorPassword:  ['']
+    conductorPhone:     ['', Validators.pattern('^$|^[0-9]{10,12}$')]
   }, { validators: crewEmailsValidator });
 
   ngOnInit(): void {
@@ -153,8 +152,7 @@ export class VehicleRegistrationComponent implements OnInit {
           conductorFirstName: crew.conductorFirstName,
           conductorLastName:  crew.conductorLastName,
           conductorEmail:     crew.conductorEmail,
-          conductorPhone:     crew.conductorPhone,
-          conductorPassword:  crew.conductorPassword
+          conductorPhone:     crew.conductorPhone
         }
       : {};
 
@@ -165,7 +163,6 @@ export class VehicleRegistrationComponent implements OnInit {
       driverLastName:  crew.driverLastName,
       driverEmail:     crew.driverEmail,
       driverPhone:     crew.driverPhone,
-      driverPassword:  crew.driverPassword,
       ...conductorBlock
     };
 
@@ -173,9 +170,9 @@ export class VehicleRegistrationComponent implements OnInit {
       next: () => {
         this.isLoading.set(false);
         this.successMessage.set(
-          `✓ ${(this.vehicleForm.value.plateNumber as string).toUpperCase()} registered successfully! Redirecting...`
+          `✓ ${(this.vehicleForm.value.plateNumber as string).toUpperCase()} registered successfully! Setup emails have been sent to the new crew. Redirecting...`
         );
-        this.snackBar.open('Vehicle registered!', 'Close', { duration: 4000 });
+        this.snackBar.open('Vehicle registered & emails sent!', 'Close', { duration: 4000 });
         this.vehicleForm.reset();
         this.ownerForm.reset();
         this.crewForm.reset();

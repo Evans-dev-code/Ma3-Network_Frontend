@@ -1,6 +1,5 @@
 <div class="reg-wrapper">
 
-  <!-- HEADER -->
   <div class="reg-header">
     <div class="reg-header-left">
       <div class="reg-icon"><mat-icon>directions_bus</mat-icon></div>
@@ -15,13 +14,11 @@
     </a>
   </div>
 
-  <!-- SUCCESS BANNER -->
   <div class="alert-banner success" *ngIf="successMessage()">
     <mat-icon>check_circle</mat-icon>
     <span>{{ successMessage() }}</span>
   </div>
 
-  <!-- ERROR BANNER -->
   <div class="alert-banner error" *ngIf="errorMessage()">
     <mat-icon>error_outline</mat-icon>
     <span>{{ errorMessage() }}</span>
@@ -30,10 +27,8 @@
     </button>
   </div>
 
-  <!-- BODY -->
   <div class="reg-body">
 
-    <!-- Left: Step Guide -->
     <div class="step-guide">
       <div class="sg-item"
            [class.sg-active]="stepIndex() === 0"
@@ -77,19 +72,16 @@
         <mat-icon>info</mat-icon>
         <p>
           The owner must already have a registered account.
-          Crew accounts will be created with the credentials you enter.
-          Conductor can be added later from the dispatch panel.
+          Crew accounts will be created automatically, and a secure password setup link will be emailed to them.
         </p>
       </div>
     </div>
 
-    <!-- Right: Stepper -->
     <div class="form-panel">
       <mat-stepper orientation="vertical" [linear]="true" #stepper
                    class="custom-stepper"
                    (selectionChange)="onStepChange($event.selectedIndex)">
 
-        <!-- ══ STEP 1: VEHICLE ══════════════════════════════════════ -->
         <mat-step [stepControl]="vehicleForm">
           <ng-template matStepLabel>Vehicle &amp; Compliance Details</ng-template>
 
@@ -99,7 +91,6 @@
 
             <div class="form-grid">
 
-              <!-- Plate Number -->
               <mat-form-field appearance="outline">
                 <mat-label>Plate Number</mat-label>
                 <mat-icon matPrefix>pin</mat-icon>
@@ -115,7 +106,6 @@
                 </mat-error>
               </mat-form-field>
 
-              <!-- Route — dropdown from SACCO routes API -->
               <div class="route-field-wrap">
                 <mat-form-field appearance="outline" class="route-select">
                   <mat-label>Route</mat-label>
@@ -137,7 +127,6 @@
                   </mat-error>
                 </mat-form-field>
 
-                <!-- Add route toggle -->
                 <button type="button" class="add-route-btn"
                         (click)="showAddRoute.set(!showAddRoute())">
                   <mat-icon>{{ showAddRoute() ? 'remove' : 'add' }}</mat-icon>
@@ -145,7 +134,6 @@
                 </button>
               </div>
 
-              <!-- Capacity -->
               <mat-form-field appearance="outline">
                 <mat-label>Passenger Capacity</mat-label>
                 <mat-icon matPrefix>groups</mat-icon>
@@ -159,7 +147,6 @@
 
             </div>
 
-            <!-- Inline add-route form -->
             <div class="add-route-form" *ngIf="showAddRoute()">
               <div class="arf-label">
                 <mat-icon>add_road</mat-icon>
@@ -236,7 +223,6 @@
           </form>
         </mat-step>
 
-        <!-- ══ STEP 2: OWNER ════════════════════════════════════════ -->
         <mat-step [stepControl]="ownerForm">
           <ng-template matStepLabel>Matatu Owner Account</ng-template>
 
@@ -256,7 +242,7 @@
                 <mat-label>Owner Email Address</mat-label>
                 <mat-icon matPrefix>email</mat-icon>
                 <input matInput type="email" formControlName="ownerEmail"
-                       placeholder="owner&#64;example.com">
+                       placeholder="owner@example.com">
                 <mat-hint>Must match an existing Ma3 Network account</mat-hint>
                 <mat-error *ngIf="ownerForm.get('ownerEmail')?.hasError('required')">
                   Required
@@ -281,7 +267,6 @@
           </form>
         </mat-step>
 
-        <!-- ══ STEP 3: CREW ═════════════════════════════════════════ -->
         <mat-step [stepControl]="crewForm">
           <ng-template matStepLabel>Driver &amp; Conductor Accounts</ng-template>
 
@@ -292,14 +277,13 @@
               Driver and conductor cannot share the same email address.
             </div>
 
-            <!-- Driver -->
             <div class="crew-section-header">
               <div class="crew-section-icon driver">
                 <mat-icon>directions_car</mat-icon>
               </div>
               <div>
                 <span class="cs-label">Driver <span class="cs-required">Required</span></span>
-                <span class="cs-sub">Logs in as CREW · starts trips and logs expenses</span>
+                <span class="cs-sub">A secure setup link will be emailed to them</span>
               </div>
             </div>
 
@@ -326,18 +310,8 @@
                 <mat-error *ngIf="crewForm.get('driverPhone')?.hasError('required')">Required</mat-error>
                 <mat-error *ngIf="crewForm.get('driverPhone')?.hasError('pattern')">Must be 10–12 digits</mat-error>
               </mat-form-field>
-              <mat-form-field appearance="outline" style="grid-column: 1 / -1">
-                <mat-label>Login Password</mat-label>
-                <mat-icon matPrefix>lock</mat-icon>
-                <input matInput type="password" formControlName="driverPassword"
-                       placeholder="Minimum 6 characters">
-                <mat-hint>Driver will use this to log in</mat-hint>
-                <mat-error *ngIf="crewForm.get('driverPassword')?.hasError('required')">Required</mat-error>
-                <mat-error *ngIf="crewForm.get('driverPassword')?.hasError('minlength')">Minimum 6 characters</mat-error>
-              </mat-form-field>
             </div>
 
-            <!-- Conductor -->
             <div class="crew-section-header mt-16">
               <div class="crew-section-icon conductor">
                 <mat-icon>person</mat-icon>
@@ -347,8 +321,7 @@
                   Conductor <span class="cs-optional">Optional</span>
                 </span>
                 <span class="cs-sub">
-                  Leave blank to register without a conductor —
-                  assign one later from the dispatch panel
+                  Leave blank to register without a conductor — assign one later
                 </span>
               </div>
             </div>
@@ -372,17 +345,8 @@
                 <input matInput formControlName="conductorPhone" placeholder="Optional">
                 <mat-error *ngIf="crewForm.get('conductorPhone')?.hasError('pattern')">Must be 10–12 digits</mat-error>
               </mat-form-field>
-              <mat-form-field appearance="outline" style="grid-column: 1 / -1"
-                              *ngIf="conductorEmailFilled">
-                <mat-label>Login Password</mat-label>
-                <mat-icon matPrefix>lock</mat-icon>
-                <input matInput type="password" formControlName="conductorPassword"
-                       placeholder="Minimum 6 characters">
-                <mat-hint>Conductor will use this to log in</mat-hint>
-              </mat-form-field>
             </div>
 
-            <!-- Summary -->
             <div class="registration-summary"
                  *ngIf="vehicleForm.valid && ownerForm.valid">
               <div class="rs-label">Registration Summary</div>

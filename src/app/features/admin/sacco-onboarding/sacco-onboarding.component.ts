@@ -115,7 +115,7 @@ export class SaccoOnboardingComponent {
       next: () => {
         this.isLoading.set(false);
         this.successMessage.set(
-          `✓ ${fv.saccoName} onboarded successfully! Manager login sent to ${fv.managerEmail} with default password: Default@123`
+          `✓ ${fv.saccoName} onboarded successfully! A secure setup link has been sent to ${fv.managerEmail}.`
         );
         this.snackBar.open(
           `${fv.saccoName} is now live on the platform`, 'Close', { duration: 4000 });
