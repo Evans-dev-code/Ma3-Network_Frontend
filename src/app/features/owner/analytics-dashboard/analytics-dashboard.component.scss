@@ -36,8 +36,8 @@
 }
 
 .blurred-content {
-  filter: blur(10px) grayscale(0.4);
-  opacity: 0.35;
+  filter: blur(7px); /* Lightened the blur so colors are still visible! */
+  opacity: 0.6;
   pointer-events: none;
   user-select: none;
   transition: filter 0.4s ease, opacity 0.4s ease;
@@ -52,7 +52,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding-top: 60px; /* Positions it nicely over the insights */
+  padding-top: 60px;
   z-index: 100;
 }
 
@@ -91,15 +91,23 @@
 }
 @keyframes rpulse { 0%{opacity:.7;transform:scale(1)} 100%{opacity:0;transform:scale(1.6)} }
 
+.feature-list {
+  list-style: none; padding: 0; margin: 0 0 18px;
+  display: flex; flex-direction: column; gap: 8px; text-align: left;
+  li { display: flex; align-items: center; gap: 8px; font-size: .83rem; color: var(--muted);
+       mat-icon { font-size: 15px; width: 15px; height: 15px; color: var(--green) !important; } }
+}
+
 .price-row {
-  margin: 18px 0 20px;
+  margin: 0 0 18px;
   .currency { font-size: 1rem; font-weight: 700; color: var(--muted); vertical-align: top; margin-top: 8px; display: inline-block; }
-  .amount   { font-size: 2.8rem; font-weight: 900; color: var(--text); line-height: 1; }
+  .amount   { font-size: 3rem; font-weight: 900; color: var(--text); line-height: 1; }
   .period   { font-size: .9rem; color: var(--muted); }
 }
 
 .phone-input-wrapper {
   text-align: left;
+  margin-bottom: 12px;
   ::ng-deep .mat-mdc-text-field-wrapper {
     background-color: var(--surf-2) !important;
   }
@@ -113,7 +121,7 @@
 
 .mpesa-btn {
   width: 100%; padding: 13px; background: linear-gradient(135deg,#10b981,#059669);
-  color: #fff; border: none; border-radius: 10px; font-size: .95rem; font-weight: 700; cursor: pointer;
+  color: #fff; border: none; border-radius: 10px; font-size: .92rem; font-weight: 700; cursor: pointer;
   display: flex; align-items: center; justify-content: center; gap: 8px; transition: opacity .2s,transform .15s;
   &:hover:not(:disabled){opacity:.9;transform:translateY(-1px)} &:disabled{opacity:.5;cursor:not-allowed}
   mat-icon{font-size:18px;color:#fff !important}
@@ -121,7 +129,7 @@
 }
 @keyframes spin{to{transform:rotate(360deg)}}
 .secure-note {
-  margin-top: 14px; font-size: .7rem; color: var(--faint);
+  margin-top: 10px; font-size: .7rem; color: var(--faint);
   display: flex; align-items: center; justify-content: center; gap: 4px;
   mat-icon{font-size:11px;width:11px;height:11px;color:var(--faint) !important}
 }
