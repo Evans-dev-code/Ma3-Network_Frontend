@@ -1,17 +1,18 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AdminService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/v1/admin';
+  private apiUrl = `${environment.apiUrl}/api/v1/admin`;
 
   // Helper to get headers (ensures Super Admin role is verified)
   private getHeaders() {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('jwt_token');
     return new HttpHeaders({
       'Authorization': `Bearer ${token}`
     });
