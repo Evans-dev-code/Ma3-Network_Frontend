@@ -6,6 +6,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { LeafletModule } from '@bluehalo/ngx-leaflet';
 import * as L from 'leaflet';
 import { OwnerService } from '../../../core/services/owner.service';
+import { WebsocketService } from '../../../core/services/websocket.service';
+import { Subscription } from 'rxjs';
 
 // Fix default Leaflet icon paths
 const iconDefault = L.icon({
@@ -27,6 +29,7 @@ L.Marker.prototype.options.icon = iconDefault;
 export class VehicleTrackerComponent implements OnInit, OnDestroy {
 
   private readonly ownerService = inject(OwnerService);
+  private readonly wsService    = inject(WebsocketService);
 
   mapOptions: L.MapOptions = {
     layers: [
@@ -44,8 +47,8 @@ export class VehicleTrackerComponent implements OnInit, OnDestroy {
   isLoading   = signal(true);
   selectedId  = signal<number | null>(null);
 
-  private simulationInterval: any;
   private map?: L.Map;
+  private wsSubscription?: Subscription;
 
   ngOnInit(): void {
     this.ownerService.getMyFleet().subscribe({
@@ -55,7 +58,7 @@ export class VehicleTrackerComponent implements OnInit, OnDestroy {
           plate:  v.plateNumber ?? 'Unknown',
           route:  v.route       ?? 'Unassigned',
           status: v.status === 'ACTIVE' ? 'Moving' : 'Parked',
-          speed:  v.status === 'ACTIVE' ? 40 + Math.floor(Math.random()*20) : 0,
+          speed:  0,
           // Spread around Nairobi CBD with consistent offset per vehicle
           lat: -1.2921 + (i * 0.012) - 0.03,
           lng:  36.8219 + (i * 0.015) - 0.03
@@ -63,14 +66,35 @@ export class VehicleTrackerComponent implements OnInit, OnDestroy {
         this.myFleet.set(fleet);
         this.updateMarkers();
         this.isLoading.set(false);
-        this.startSimulation();
+
+        // Register vehicles to WebSocket
+        fleet.forEach(v => this.wsService.trackVehicle(v.id));
+
+        // Listen for live updates
+        this.wsSubscription = this.wsService.getLocationFeed().subscribe(update => {
+          const current = this.myFleet();
+          const vIndex = current.findIndex(v => v.id === update.vehicleId);
+          if (vIndex !== -1) {
+            const updatedFleet = [...current];
+            updatedFleet[vIndex] = {
+              ...updatedFleet[vIndex],
+              lat: update.lat,
+              lng: update.lng,
+              speed: Math.floor(Math.random() * (60 - 30 + 1) + 30), // Visual speed simulation
+              status: 'Moving'
+            };
+            this.myFleet.set(updatedFleet);
+            this.updateMarkers();
+          }
+        });
       },
       error: () => this.isLoading.set(false)
     });
   }
 
   ngOnDestroy(): void {
-    clearInterval(this.simulationInterval);
+    if (this.wsSubscription) this.wsSubscription.unsubscribe();
+    this.myFleet().forEach(v => this.wsService.stopTracking(v.id));
   }
 
   onMapReady(map: L.Map): void {
@@ -122,22 +146,5 @@ export class VehicleTrackerComponent implements OnInit, OnDestroy {
       `);
     });
     this.mapLayers.set(layers);
-  }
-
-  private startSimulation(): void {
-    // Replace with WebSocket: SockJS → /ws → subscribe /topic/locations/{vehicleId}
-    this.simulationInterval = setInterval(() => {
-      const updated = this.myFleet().map(v => {
-        if (v.status !== 'Moving') return v;
-        return {
-          ...v,
-          lat:   v.lat + (Math.random() - 0.5) * 0.002,
-          lng:   v.lng + (Math.random() - 0.5) * 0.002,
-          speed: Math.max(25, Math.min(90, v.speed + Math.floor((Math.random()-0.5)*8)))
-        };
-      });
-      this.myFleet.set(updated);
-      this.updateMarkers();
-    }, 3000);
   }
 }

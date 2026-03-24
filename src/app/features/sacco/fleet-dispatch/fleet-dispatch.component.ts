@@ -17,6 +17,8 @@ import { MatButtonModule }    from '@angular/material/button';
 import { LeafletModule }      from '@bluehalo/ngx-leaflet';
 import * as L from 'leaflet';
 import { SaccoService } from '../../../core/services/sacco.service';
+import { WebsocketService } from '../../../core/services/websocket.service';
+import { Subscription } from 'rxjs';
 
 // ── Leaflet icon fix ───────────────────────────────────────────────────
 L.Marker.prototype.options.icon = L.icon({
@@ -47,7 +49,6 @@ const crewEmailsValidator = (g: AbstractControl): ValidationErrors | null => {
   template: `
     <div class="dlg-wrapper">
 
-      <!-- Header -->
       <div class="dlg-header">
         <div class="dlg-title-block">
           <div class="dlg-bus-icon"><mat-icon>directions_bus</mat-icon></div>
@@ -61,7 +62,6 @@ const crewEmailsValidator = (g: AbstractControl): ValidationErrors | null => {
 
       <div class="dlg-body">
 
-        <!-- Same-email error -->
         <div class="dlg-error" *ngIf="form.hasError('sameEmail')">
           <mat-icon>warning</mat-icon>
           Driver and conductor cannot share the same email address.
@@ -69,7 +69,6 @@ const crewEmailsValidator = (g: AbstractControl): ValidationErrors | null => {
 
         <form [formGroup]="form">
 
-          <!-- Current crew -->
           <div class="current-crew" *ngIf="data.currentDriver || data.currentConductor">
             <span class="cc-label">Current crew</span>
             <div class="cc-row">
@@ -85,7 +84,6 @@ const crewEmailsValidator = (g: AbstractControl): ValidationErrors | null => {
             </div>
           </div>
 
-          <!-- ── Driver (required) ─────────────────────────────── -->
           <div class="dlg-section-header">
             <div class="dlg-section-icon driver"><mat-icon>directions_car</mat-icon></div>
             <div>
@@ -122,7 +120,6 @@ const crewEmailsValidator = (g: AbstractControl): ValidationErrors | null => {
             </mat-form-field>
           </div>
 
-          <!-- ── Conductor (optional) ──────────────────────────── -->
           <div class="dlg-section-header">
             <div class="dlg-section-icon conductor"><mat-icon>person</mat-icon></div>
             <div>
@@ -370,6 +367,7 @@ export class FleetDispatchComponent implements OnInit, OnDestroy {
   private saccoService = inject(SaccoService);
   private snackBar     = inject(MatSnackBar);
   private dialog       = inject(MatDialog);
+  private wsService    = inject(WebsocketService); 
 
   isLoading   = signal(true);
   vehicles    = signal<DispatchVehicle[]>([]);
@@ -377,7 +375,7 @@ export class FleetDispatchComponent implements OnInit, OnDestroy {
   searchQuery = signal('');
 
   private map?: L.Map;
-  private simInterval: any;
+  private wsSubscription?: Subscription;
 
   // ── KPIs ──────────────────────────────────────────────────────────
   activeCount = computed(() =>
@@ -425,7 +423,11 @@ export class FleetDispatchComponent implements OnInit, OnDestroy {
   mapLayers = signal<L.Layer[]>([]);
 
   ngOnInit():    void { this.loadFleet(); }
-  ngOnDestroy(): void { clearInterval(this.simInterval); }
+  
+  ngOnDestroy(): void { 
+    if (this.wsSubscription) this.wsSubscription.unsubscribe();
+    this.vehicles().forEach(v => this.wsService.stopTracking(v.id));
+  }
 
   loadFleet(): void {
     this.isLoading.set(true);
@@ -436,26 +438,36 @@ export class FleetDispatchComponent implements OnInit, OnDestroy {
           plateNumber:  v.plateNumber,
           route:        v.route ?? 'Unassigned',
           status:       v.status,
-          driverName:   v.driver
-            ? `${v.driver.firstName} ${v.driver.lastName}`
-            : 'No Driver',
-          conductorName: v.conductor
-            ? `${v.conductor.firstName} ${v.conductor.lastName}`
-            : 'No Conductor',
-          ownerName: v.owner
-            ? `${v.owner.firstName} ${v.owner.lastName}`
-            : 'No Owner',
+          driverName:   v.driver ? `${v.driver.firstName} ${v.driver.lastName}` : 'No Driver',
+          conductorName: v.conductor ? `${v.conductor.firstName} ${v.conductor.lastName}` : 'No Conductor',
+          ownerName: v.owner ? `${v.owner.firstName} ${v.owner.lastName}` : 'No Owner',
           hasConductor: !!v.conductor,
-          speed: v.status === 'ACTIVE'
-            ? 40 + Math.floor(Math.random() * 30)
-            : 0,
+          speed: 0,
           lat: -1.2921 + (i * 0.012) - 0.03,
           lng:  36.8219 + (i * 0.015) - 0.03
         }));
         this.vehicles.set(mapped);
         this.updateMarkers();
         this.isLoading.set(false);
-        this.startSimulation();
+
+        // WebSockets Integration
+        mapped.forEach(v => this.wsService.trackVehicle(v.id));
+        
+        this.wsSubscription = this.wsService.getLocationFeed().subscribe(update => {
+          const current = this.vehicles();
+          const vIndex = current.findIndex(v => v.id === update.vehicleId);
+          if (vIndex !== -1) {
+            const updatedFleet = [...current];
+            updatedFleet[vIndex] = {
+              ...updatedFleet[vIndex],
+              lat: update.lat,
+              lng: update.lng,
+              speed: Math.floor(Math.random() * (60 - 30 + 1) + 30) // Visual speed simulation
+            };
+            this.vehicles.set(updatedFleet);
+            this.updateMarkers();
+          }
+        });
       },
       error: () => {
         this.snackBar.open('Failed to load fleet', 'Retry', { duration: 4000 })
@@ -484,7 +496,7 @@ export class FleetDispatchComponent implements OnInit, OnDestroy {
     const layers = this.vehicles().map(v => {
       const active   = v.status === 'ACTIVE';
       const selected = v.id === this.selectedId();
-      const color    = active ? '#10b981' : '#f43f5e';
+      const color    = v.speed > 0 ? '#10b981' : '#f43f5e';
       const size     = selected ? 16 : 11;
 
       const icon = L.divIcon({
@@ -526,23 +538,6 @@ export class FleetDispatchComponent implements OnInit, OnDestroy {
       `);
     });
     this.mapLayers.set(layers);
-  }
-
-  private startSimulation(): void {
-    this.simInterval = setInterval(() => {
-      const updated = this.vehicles().map(v => {
-        if (v.status !== 'ACTIVE') return v;
-        return {
-          ...v,
-          lat:   v.lat + (Math.random() - 0.5) * 0.002,
-          lng:   v.lng + (Math.random() - 0.5) * 0.002,
-          speed: Math.max(20, Math.min(90,
-            v.speed + Math.floor((Math.random() - 0.5) * 10)))
-        };
-      });
-      this.vehicles.set(updated);
-      this.updateMarkers();
-    }, 3000);
   }
 
   // ── Actions ────────────────────────────────────────────────────────
