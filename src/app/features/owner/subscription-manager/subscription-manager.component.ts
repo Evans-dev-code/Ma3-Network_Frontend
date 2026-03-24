@@ -2,6 +2,10 @@ import { Component, signal, computed, OnInit, inject } from '@angular/core';
 import { CommonModule }    from '@angular/common';
 import { MatIconModule }   from '@angular/material/icon';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule }     from '@angular/material/input';
+import { MatButtonModule }    from '@angular/material/button';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import {
   OwnerService, SubscriptionStatus
 } from '../../../core/services/owner.service';
@@ -9,7 +13,10 @@ import {
 @Component({
   selector: 'app-subscription-manager',
   standalone: true,
-  imports: [CommonModule, MatIconModule, MatSnackBarModule],
+  imports: [
+    CommonModule, MatIconModule, MatSnackBarModule,
+    MatFormFieldModule, MatInputModule, MatButtonModule, ReactiveFormsModule
+  ],
   templateUrl: './subscription-manager.component.html',
   styleUrl:    './subscription-manager.component.scss'
 })
@@ -21,6 +28,12 @@ export class SubscriptionManagerComponent implements OnInit {
   isLoading  = signal(false);
   isPaying   = signal(false);
   sub        = signal<SubscriptionStatus | null>(null);
+
+  // Phone number validator (Matches 07..., 2547..., +2547...)
+  phoneControl = new FormControl('', [
+    Validators.required, 
+    Validators.pattern('^(0|254|\\+254)\\d{9}$')
+  ]);
 
   statusLabel = computed(() => {
     const s = this.sub();
@@ -50,7 +63,7 @@ export class SubscriptionManagerComponent implements OnInit {
     this.loadStatus();
   }
 
-  private loadStatus(): void {
+  loadStatus(): void {
     this.isLoading.set(true);
     this.ownerService.getSubscriptionStatus().subscribe({
       next:  (s) => { this.sub.set(s); this.isLoading.set(false); },
@@ -59,22 +72,34 @@ export class SubscriptionManagerComponent implements OnInit {
   }
 
   initiatePayment(): void {
+    if (this.phoneControl.invalid) {
+      this.phoneControl.markAsTouched();
+      return;
+    }
+
     this.isPaying.set(true);
-    // Simulate STK push — replace with real Daraja call
-    setTimeout(() => {
-      this.ownerService.activateSubscription().subscribe({
-        next: (s) => {
-          this.sub.set(s);
-          this.isPaying.set(false);
-          this.snackBar.open(
-            '✓ Payment received — subscription active for 30 days',
-            'Close', { duration: 4000 });
-        },
-        error: () => {
-          this.isPaying.set(false);
-          this.snackBar.open('Payment failed. Try again.', 'OK', { duration: 3000 });
-        }
-      });
-    }, 2500);
+    const phoneNumber = this.phoneControl.value!;
+    
+    // Call the real Daraja API via Spring Boot
+    this.ownerService.paySubscription(phoneNumber).subscribe({
+      next: (res) => {
+        this.isPaying.set(false);
+        this.snackBar.open(
+          '📱 STK Push sent! Please enter your M-Pesa PIN on your phone.',
+          'Close', { duration: 8000 }
+        );
+        
+        // M-Pesa is asynchronous. The webhook will activate the account in a few seconds.
+        // We set a timeout to automatically check the status again after 15 seconds.
+        setTimeout(() => {
+          this.loadStatus();
+        }, 15000);
+      },
+      error: (err) => {
+        this.isPaying.set(false);
+        const msg = err.error?.error || 'Payment request failed. Try again.';
+        this.snackBar.open(msg, 'Close', { duration: 4000 });
+      }
+    });
   }
 }

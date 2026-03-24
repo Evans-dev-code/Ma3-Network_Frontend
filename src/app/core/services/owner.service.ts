@@ -128,12 +128,15 @@ export class OwnerService {
   }
 
   getSubscriptionStatus(): Observable<SubscriptionStatus> {
-  return this.http.get<SubscriptionStatus>(
-    `${this.base}/subscription/status`);
-}
+    return this.http.get<SubscriptionStatus>(
+      `${this.base}/subscription/status`);
+  }
 
-activateSubscription(): Observable<SubscriptionStatus> {
-  return this.http.post<SubscriptionStatus>(
-    `${this.base}/subscription/activate`, {});
-}
+  // 🚨 NEW: Triggers M-Pesa STK Push
+  paySubscription(phoneNumber: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.base}/subscription/pay`, 
+      { phoneNumber }
+    );
+  }
 }

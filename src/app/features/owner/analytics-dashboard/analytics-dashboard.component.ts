@@ -8,6 +8,9 @@ import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule }     from '@angular/material/tooltip';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatBadgeModule }       from '@angular/material/badge';
+import { MatFormFieldModule }   from '@angular/material/form-field';
+import { MatInputModule }       from '@angular/material/input';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Chart, ChartOptions, TooltipItem } from 'chart.js';
 import 'chart.js/auto';
 import { Subject, takeUntil } from 'rxjs';
@@ -20,7 +23,8 @@ import {
   standalone: true,
   imports: [
     CommonModule, MatIconModule, MatButtonModule,
-    MatProgressBarModule, MatTooltipModule, MatSnackBarModule, MatBadgeModule
+    MatProgressBarModule, MatTooltipModule, MatSnackBarModule, MatBadgeModule,
+    MatFormFieldModule, MatInputModule, ReactiveFormsModule
   ],
   templateUrl: './analytics-dashboard.component.html',
   styleUrl:    './analytics-dashboard.component.scss'
@@ -45,8 +49,15 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
   isSubscriptionActive = signal(false);
   isLoading            = signal(false);
   isExporting          = signal(false);
+  isPaying             = signal(false);
   selectedRange        = signal<'week' | 'month'>('week');
   protected raw        = signal<AnalyticsDashboard | null>(null);
+
+  // Phone Control for M-Pesa Paywall
+  phoneControl = new FormControl('', [
+    Validators.required, 
+    Validators.pattern('^(0|254|\\+254)\\d{9}$')
+  ]);
 
   // ── KPIs ──────────────────────────────────────────────────────────────
   totalVehicles        = computed(() => this.raw()?.totalVehicles        ?? 0);
@@ -204,57 +215,47 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
   }
 
   // ── Subscription ──────────────────────────────────────────────────────
-  /**
-   * Called on init — checks the real DB subscription state.
-   * If active, loads dashboard data immediately.
-   * If not active, shows the paywall.
-   */
   private checkSubscription(): void {
     this.isLoading.set(true);
     this.ownerService.getSubscriptionStatus().subscribe({
       next: (s) => {
         this.isSubscriptionActive.set(s.active);
-        this.isLoading.set(false);
-        if (s.active) this.loadData();
+        // ALWAYS load data so the teaser KPIs show up!
+        this.loadData();
       },
       error: () => {
-        // If the endpoint fails for any reason, default to showing the paywall
         this.isSubscriptionActive.set(false);
-        this.isLoading.set(false);
+        this.loadData(); // Still try to load teaser data
       }
     });
   }
 
-  /**
-   * Called when owner clicks "Unlock via M-Pesa".
-   * The setTimeout simulates the STK push round-trip delay.
-   * In production: trigger Daraja STK push first, then call activateSubscription()
-   * inside the Daraja callback/webhook once payment is confirmed.
-   */
   unlockDashboard(): void {
-    this.isLoading.set(true);
-    setTimeout(() => {
-      this.ownerService.activateSubscription().subscribe({
-        next: (s) => {
-          this.isSubscriptionActive.set(s.active);
-          this.isLoading.set(false);
-          if (s.active) {
-            this.snackBar.open(
-              '✓ Subscription activated! Welcome to Wealth Protector.',
-              'Close', { duration: 4000 });
-            this.loadData();
-          } else {
-            this.snackBar.open(
-              'Activation failed. Please try again.', 'OK', { duration: 3000 });
-          }
-        },
-        error: () => {
-          this.isLoading.set(false);
-          this.snackBar.open(
-            'Payment failed. Please try again.', 'OK', { duration: 3000 });
-        }
-      });
-    }, 2500);
+    if (this.phoneControl.invalid) {
+      this.phoneControl.markAsTouched();
+      return;
+    }
+
+    this.isPaying.set(true);
+    const phoneNumber = this.phoneControl.value!;
+
+    this.ownerService.paySubscription(phoneNumber).subscribe({
+      next: (res) => {
+        this.isPaying.set(false);
+        this.snackBar.open(
+          '📱 STK Push sent! Please enter your PIN on your phone.', 
+          'Close', { duration: 8000 }
+        );
+        
+        // Poll for successful activation
+        setTimeout(() => this.checkSubscription(), 15000);
+      },
+      error: (err) => {
+        this.isPaying.set(false);
+        const msg = err.error?.error || 'Payment failed. Please try again.';
+        this.snackBar.open(msg, 'OK', { duration: 4000 });
+      }
+    });
   }
 
   // ── Data Loading ──────────────────────────────────────────────────────
@@ -266,7 +267,10 @@ export class AnalyticsDashboardComponent implements OnInit, OnDestroy {
         next: (data) => {
           this.raw.set(data);
           this.isLoading.set(false);
-          setTimeout(() => this.buildCharts(data), 300);
+          // Only build charts if subscription is active to save resources
+          if (this.isSubscriptionActive()) {
+            setTimeout(() => this.buildCharts(data), 300);
+          }
         },
         error: () => {
           this.snackBar.open('Failed to load dashboard', 'Retry', { duration: 4000 })

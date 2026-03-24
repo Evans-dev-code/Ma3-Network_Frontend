@@ -1,29 +1,30 @@
 <div class="sub-wrapper">
 
-  <!-- HEADER -->
   <div class="sub-header">
     <div>
       <h1>Subscription & Billing</h1>
       <p>Manage your Wealth Protector plan</p>
     </div>
-    <div class="status-pill" *ngIf="sub()" [ngClass]="statusLabel().css">
-      <span class="dot"></span>
-      {{ statusLabel().text }}
+    <div class="header-actions">
+      <button mat-icon-button (click)="loadStatus()" [disabled]="isLoading()" matTooltip="Refresh Status">
+        <mat-icon>refresh</mat-icon>
+      </button>
+      <div class="status-pill" *ngIf="sub()" [ngClass]="statusLabel().css">
+        <span class="dot"></span>
+        {{ statusLabel().text }}
+      </div>
     </div>
   </div>
 
-  <!-- Loading -->
   <div class="loading-row" *ngIf="isLoading()">
     <div class="spinner"></div>
-    <span>Loading subscription...</span>
+    <span>Checking subscription status...</span>
   </div>
 
   <ng-container *ngIf="sub() && !isLoading()">
 
-    <!-- TOP GRID -->
     <div class="top-grid">
 
-      <!-- Plan Card -->
       <div class="card plan-card">
         <div class="card-label">Current Plan</div>
         <div class="plan-name">Wealth Protector
@@ -75,37 +76,33 @@
           </div>
         </div>
 
-        <!-- Expired / No subscription banner -->
         <div class="expired-banner" *ngIf="!sub()!.active">
           <mat-icon>warning</mat-icon>
           <span>Your subscription has expired. Renew to restore fleet analytics access.</span>
         </div>
       </div>
 
-      <!-- Payment Card -->
       <div class="card payment-card">
         <div class="card-label">Payment Method</div>
 
-        <div class="mpesa-row">
-          <div class="mpesa-icon">
-            <mat-icon>phone_android</mat-icon>
-          </div>
-          <div class="mpesa-info">
-            <span class="mpesa-provider">M-PESA Primary</span>
-            <span class="mpesa-number">0711 *** 785</span>
-          </div>
-          <div class="mpesa-badge">Active</div>
+        <div class="phone-input-wrapper mt-3">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>M-Pesa Phone Number</mat-label>
+            <mat-icon matPrefix>phone_android</mat-icon>
+            <input matInput [formControl]="phoneControl" placeholder="e.g. 0712345678">
+            <mat-error *ngIf="phoneControl.hasError('required')">Phone number is required</mat-error>
+            <mat-error *ngIf="phoneControl.hasError('pattern')">Enter a valid Kenyan number</mat-error>
+          </mat-form-field>
         </div>
 
-        <p class="mpesa-hint">
-          An STK push will be sent to your registered number when you pay.
+        <p class="mpesa-hint" style="margin-top: 0;">
+          An STK push will be sent to this number when you click pay.
         </p>
 
-        <!-- Pay button -->
-        <button class="pay-btn" (click)="initiatePayment()" [disabled]="isPaying()">
+        <button class="pay-btn" (click)="initiatePayment()" [disabled]="isPaying() || phoneControl.invalid || sub()!.totalMonthlyCost === 0">
           <span class="pay-loader" *ngIf="isPaying()"></span>
           <mat-icon *ngIf="!isPaying()">payments</mat-icon>
-          <span>{{ isPaying() ? 'Sending M-Pesa request...' : 'Pay KSh ' + (sub()!.totalMonthlyCost | number) + ' Now' }}</span>
+          <span>{{ isPaying() ? 'Sending Request...' : 'Pay KSh ' + (sub()!.totalMonthlyCost | number) + ' Now' }}</span>
         </button>
 
         <p class="pay-note">
@@ -113,7 +110,6 @@
           Secured via Safaricom Daraja API
         </p>
 
-        <!-- Tier breakdown -->
         <div class="tier-breakdown">
           <div class="tier-row" *ngFor="let n of [1,2,3,4,5]">
             <span class="tier-vehicles">{{ n }} vehicle{{ n > 1 ? 's' : '' }}</span>
@@ -124,7 +120,6 @@
 
     </div>
 
-    <!-- BILLING HISTORY -->
     <div class="card history-card">
       <div class="card-label">Billing History</div>
 
