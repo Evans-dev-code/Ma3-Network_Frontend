@@ -53,11 +53,10 @@ export class TripLoggerComponent implements OnInit, OnDestroy {
     routeName: ['', Validators.required]
   });
 
+  // Removed fuel and other expenses! Only tracking income.
   finalizeForm: FormGroup = this.fb.group({
     passengerCount: ['', [Validators.required, Validators.min(1)]],
-    totalRevenue:   ['', [Validators.required, Validators.min(0)]],
-    fuelExpense:    [0,  [Validators.required, Validators.min(0)]],
-    otherExpenses:  [0,  [Validators.required, Validators.min(0)]]
+    totalRevenue:   ['', [Validators.required, Validators.min(0)]]
   });
 
   // ── Lifecycle ─────────────────────────────────────────────────────
@@ -167,24 +166,24 @@ export class TripLoggerComponent implements OnInit, OnDestroy {
     if (!trip) return;
 
     this.isLoading.set(true);
-    const { passengerCount, totalRevenue, fuelExpense, otherExpenses } =
-      this.finalizeForm.value;
+    const { passengerCount, totalRevenue } = this.finalizeForm.value;
 
+    // Send 0 for expenses. Expenses are handled in the Expense Logger now.
     this.crewService.finalizeTrip(trip.id, {
       passengerCount: Number(passengerCount),
       totalRevenue:   Number(totalRevenue),
-      fuelExpense:    Number(fuelExpense   ?? 0),
-      otherExpenses:  Number(otherExpenses ?? 0)
+      fuelExpense:    0,
+      otherExpenses:  0
     }).subscribe({
       next: () => {
         this.activeTrip.set(null);
         this.isFinalizing.set(false);
         this.stopGpsTracking();
         this.tripForm.reset();
-        this.finalizeForm.reset({ fuelExpense: 0, otherExpenses: 0 });
+        this.finalizeForm.reset();
         this.loadTodayTrips();
         this.snackBar.open(
-          '✓ Trip saved! Revenue synced to Owner dashboard.',
+          '✓ Trip saved! Income synced to Owner dashboard.',
           'Close', { duration: 4000 });
         this.isLoading.set(false);
       },
